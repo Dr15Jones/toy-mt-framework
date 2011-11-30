@@ -12,7 +12,7 @@
 
 using namespace demo;
 
-SimpleSource::SimpleSource(unsigned int iNEvents): 
+SimpleSource::SimpleSource(size_t iNEvents): 
   m_nEvents(iNEvents),
   m_seenEvents(0) {}
   

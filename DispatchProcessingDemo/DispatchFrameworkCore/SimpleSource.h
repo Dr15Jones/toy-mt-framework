@@ -15,12 +15,12 @@ namespace demo {
   
   class SimpleSource : public Source {
   public:
-    SimpleSource(unsigned int iNEvents);
+    SimpleSource(size_t iNEvents);
     
     virtual bool setEventInfo(Event& iEvent);
   private:
-    unsigned int m_nEvents;
-    unsigned int m_seenEvents;
+    size_t m_nEvents;
+    size_t m_seenEvents;
   };
 }
 
