@@ -13,8 +13,8 @@
 #include <Block.h>
 
 #include "ProducerWrapper.h"
-#import "Producer.h"
-#import "Event.h"
+#include "Producer.h"
+#include "Event.h"
 #include "Queues.h"
 
 using namespace demo;

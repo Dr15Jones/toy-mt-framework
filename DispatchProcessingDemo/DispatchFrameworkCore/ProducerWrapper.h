@@ -10,7 +10,7 @@
 #define DispatchProcessingDemo_ProducerWrapper_h
 
 #include <dispatch/dispatch.h>
-#import "GroupHolder.h"
+#include "GroupHolder.h"
 #include "ModuleWrapper.h"
 
 namespace demo {

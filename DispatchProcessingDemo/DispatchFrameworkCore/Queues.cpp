@@ -7,7 +7,7 @@
  *
  */
 
-#import "Queues.h"
+#include "Queues.h"
 namespace demo {
    dispatch_queue_t s_thread_safe_queue;
    dispatch_queue_t s_non_thread_safe_queue;
