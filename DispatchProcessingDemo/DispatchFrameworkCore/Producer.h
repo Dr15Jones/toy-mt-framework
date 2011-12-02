@@ -13,8 +13,8 @@
 #include <string>
 #include <set>
 #include <dispatch/dispatch.h>
-#import "Module.h"
-#import "GroupHolder.h"
+#include "Module.h"
+#include "GroupHolder.h"
 
 namespace demo {
   class Event;
