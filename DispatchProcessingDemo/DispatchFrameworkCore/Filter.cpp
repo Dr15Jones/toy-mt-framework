@@ -7,7 +7,7 @@
 //
 
 #include <iostream>
-#import <dispatch/dispatch.h>
+#include <dispatch/dispatch.h>
 #include <Block.h>
 
 #include "Filter.h"

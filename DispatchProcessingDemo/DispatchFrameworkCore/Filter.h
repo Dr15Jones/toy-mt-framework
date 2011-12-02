@@ -8,7 +8,7 @@
 
 #ifndef DispatchProcessingDemo_Filter_h
 #define DispatchProcessingDemo_Filter_h
-#import <dispatch/dispatch.h>
+#include <dispatch/dispatch.h>
 
 #include"Module.h"
 
