@@ -11,9 +11,9 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <unistd.h>
 #include <memory>
-#import "Event.h"
-#import "Producer.h"
-#import <dispatch/dispatch.h>
+#include "Event.h"
+#include "Producer.h"
+#include <dispatch/dispatch.h>
 
 class Event_test : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(Event_test);
