@@ -66,6 +66,13 @@ Event::get(const Getter* iGetter) const
   return it->second.value();
 }
 
+
+static void getasynchimpl_done_with_get(void* context) {
+  dispatch_group_t groupDoneWithGet = static_cast<dispatch_group_t>(context);
+  dispatch_group_leave(groupDoneWithGet);
+  dispatch_release(groupDoneWithGet);
+}
+
 //asynchronously get data
 void
 Event::getAsyncImpl(Getter* iGetter, GroupHolder iGroupDoneWithGet) const 
@@ -89,14 +96,7 @@ Event::getAsyncImpl(Getter* iGetter, GroupHolder iGroupDoneWithGet) const
       dispatch_group_enter(iGroupDoneWithGet.get());
       dispatch_group_t groupDoneWithGet = iGroupDoneWithGet.get();
       dispatch_retain(groupDoneWithGet);
-      dispatch_group_notify(waitGroup.get(), s_thread_safe_queue, ^{
-         //NOTE: Can't use it->second.second here because evidently the underling internals of the iterator
-         // can't be safely copied to a block
-         //printf("     iGetter->set from run producer %s %i\n",found->first->label().c_str(),found->second);
-         //iGetter->set(found->value());
-         dispatch_group_leave(groupDoneWithGet);
-         dispatch_release(groupDoneWithGet);
-      });
+      dispatch_group_notify_f(waitGroup.get(), s_thread_safe_queue, groupDoneWithGet, getasynchimpl_done_with_get);
    } else {
       //printf("     iGetter->set from already run producer %s %i\n",found->first->label().c_str(),found->second);
       //iGetter->set(found->value());
@@ -147,6 +147,10 @@ Event::clone() {
 }
 
 
+static void event_get_suspend_non_thread_safe_queue(void*) {
+  dispatch_suspend(s_non_thread_safe_queue);
+}
+
 namespace demo {
    namespace edm {
       //synchronously get data
@@ -161,9 +165,7 @@ namespace demo {
          int returnValue = m_event->get(iModule,iProduct);
          if(!m_isThreadSafe) {
             //we must acquire the 'lock' on the non-thread-safe queue again
-            dispatch_sync(s_non_thread_safe_queue, ^{
-               dispatch_suspend(s_non_thread_safe_queue);
-            });
+            dispatch_sync_f(s_non_thread_safe_queue, s_non_thread_safe_queue, event_get_suspend_non_thread_safe_queue);
          }
          return returnValue;
       }
