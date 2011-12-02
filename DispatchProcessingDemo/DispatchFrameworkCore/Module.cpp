@@ -9,9 +9,9 @@
 
 #include <iostream>
 
-#import "Module.h"
-#import "Getter.h"
-#import "Event.h"
+#include "Module.h"
+#include "Getter.h"
+#include "Event.h"
 
 using namespace demo;
 
