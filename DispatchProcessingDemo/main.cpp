@@ -1,11 +1,11 @@
 #include <iostream>
-#import <dispatch/dispatch.h>
+#include <dispatch/dispatch.h>
 #include <assert.h>
 #include <cmath>
 #include <boost/property_tree/json_parser.hpp>
 #include <sstream>
 
-#import "Queues.h"
+#include "Queues.h"
 #include "EventProcessor.h"
 
 #include "SimpleSource.h"

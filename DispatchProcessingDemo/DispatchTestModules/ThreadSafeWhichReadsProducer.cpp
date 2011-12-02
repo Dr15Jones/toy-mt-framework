@@ -7,10 +7,10 @@
 //
 
 #include <iostream>
-#import "ThreadSafeWhichReadsProducer.h"
-#import "Event.h"
-#import "Getter.h"
-#import "busyWait.h"
+#include "ThreadSafeWhichReadsProducer.h"
+#include "Event.h"
+#include "Getter.h"
+#include "busyWait.h"
 
 using namespace demo;
 

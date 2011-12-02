@@ -9,7 +9,7 @@
 #ifndef DispatchProcessingDemo_ThreadSafeProducer_h
 #define DispatchProcessingDemo_ThreadSafeProducer_h
 #include <string>
-#import "ConfiguredProducer.h"
+#include "ConfiguredProducer.h"
 
 namespace demo {
   class ThreadSafeProducer : public ConfiguredProducer {
