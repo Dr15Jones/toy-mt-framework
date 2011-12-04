@@ -9,6 +9,7 @@
 #ifndef DispatchProcessingDemo_EventProcessor_h
 #define DispatchProcessingDemo_EventProcessor_h
 #include <vector>
+#include <dispatch/dispatch.h>
 
 namespace demo {
   class Source;
@@ -21,15 +22,32 @@ namespace demo {
   class EventProcessor {
   public:
     EventProcessor();
+    ~EventProcessor();
     
     void setSource(Source* iSource);
     void addPath(const std::string& iName, const std::vector<std::string>& iModules);
     void addProducer(Producer* iProd);
     void addFilter(Filter* iFilter);
     void processAll(unsigned int iNumConcurrentEvents);
+    
+    class LoopContext {
+      friend class EventProcessor;
+    public: 
+      LoopContext():m_schedule(0),m_processor(0) {}
+      void filter(bool);
+    private:
+      LoopContext(Schedule* iSchedule, EventProcessor* iProc):
+      m_schedule(iSchedule), m_processor(iProc) {}
+      Schedule* m_schedule;
+      EventProcessor* m_processor;
+    };
+    friend class LoopContext;
   private:
+    static void get_and_process_one_event_f(void*);
+    
     Source* m_source;
-    std::vector<Schedule*> m_schedules;
+    dispatch_group_t m_eventLoopGroup;
+    std::vector<LoopContext> m_schedules;
     bool m_fatalJobErrorOccured;    
   };
 

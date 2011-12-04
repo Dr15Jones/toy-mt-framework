@@ -33,18 +33,15 @@ namespace demo {
     void reset();
     
   private:
-    typedef void(^WorkBlock_t)();
     static void do_produceAsyncImpl_task(void*);
     void doProduceAsyncImpl();
     void doWork();
     Producer* producer() const;
 
-    WorkBlock_t createWorkBlock();
     ProducerWrapper& operator=(const ProducerWrapper&);
     
     dispatch_queue_t m_runQueue;
     GroupHolder m_group;
-    WorkBlock_t m_work;
     bool m_wasRun;
   };
 }

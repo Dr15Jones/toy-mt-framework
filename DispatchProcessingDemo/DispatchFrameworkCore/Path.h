@@ -9,18 +9,18 @@
 #ifndef DispatchProcessingDemo_Path_h
 #define DispatchProcessingDemo_Path_h
 #include <vector>
-#include "filtering_callback.h"
+#include "PathFilteringCallback.h"
+#include "FilterOnPathWrapper.h"
 
 namespace demo {
   class Event;
-  class FilterWrapper;
   class Filter;
   
   class Path {
   public:
-    Path(): m_fatalJobErrorOccurredPtr(0) {}
+    Path(): m_fatalJobErrorOccurredPtr(0),m_callback(0) {}
     
-    void runAsync(Event& iEvent, filtering_callback_t iCallback); 
+    void runAsync(PathFilteringCallback iCallback); 
     
     void reset();
     
@@ -28,20 +28,23 @@ namespace demo {
       m_fatalJobErrorOccurredPtr = iPtr;
     }
     
-    void addFilter(FilterWrapper* iFilter);
+    void addFilter(FilterWrapper* iFilter, Event*);
     
-    Path* clone(const std::vector<FilterWrapper*>& iWrappers) const;
+    Path* clone(const std::vector<FilterWrapper*>& iWrappers, Event*) const;
+    
+    void doNextIfSuccess(bool iKeep, bool iSuccess, size_t iPreviousIndex);
   private:
-    Path(const Path& iOther);
+    friend class FilterOnPathWrapper;
+    Path(const Path& iOther); //undefined
 
+    static void reset_f(void*, size_t);
+    
     //NOTE: iCallback must be on the heap
-    void runFilterAsync(Event& iEvent, 
-                        unsigned int iIndex,
-                        filtering_callback_t iCallback) const;
+    void runFilterAsync( size_t iIndex);
     
-    std::vector<FilterWrapper*> m_filters;
+    std::vector<FilterOnPathWrapper> m_filters;
     bool* m_fatalJobErrorOccurredPtr;
-    
+    PathFilteringCallback m_callback;
   };
   
 }

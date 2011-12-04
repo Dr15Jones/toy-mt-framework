@@ -11,28 +11,24 @@
 #ifndef DispatchProcessingDemo_FilterWrapper_h
 #define DispatchProcessingDemo_FilterWrapper_h
 
-#include <dispatch/dispatch.h>
-#include "GroupHolder.h"
-#include "ModuleWrapper.h"
 
 namespace demo {
   class Filter;
   class Event;
-  class FilterWrapper: private ModuleWrapper {
+  class FilterWrapper{
   public:
-    explicit FilterWrapper(Filter* iFilter, Event* iEvent);
-    FilterWrapper(const FilterWrapper&, Event*);
-    FilterWrapper(const FilterWrapper&);
-    ~FilterWrapper();
+    FilterWrapper(Filter* iFilter);
     
-    void filterAsync(const Event&,
-                     void(^iCallback)(bool,bool));
     void reset();
     const std::string& label() const;
     
-  private:
+    bool doFilter(Event& iEvent);
+    
+    bool wasRun() const { return m_wasRun;}
     Filter* filter() const;
-    dispatch_queue_t m_runQueue;
+    
+  private:
+    Filter* m_filter;
     bool m_keep;
     bool m_wasRun;    
   };

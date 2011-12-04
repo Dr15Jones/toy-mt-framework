@@ -17,12 +17,19 @@ using namespace demo;
 
 EventProcessor::EventProcessor():
   m_source(0),
+  m_eventLoopGroup(dispatch_group_create()),
   m_fatalJobErrorOccured(false)
   {
-    m_schedules.push_back(new Schedule());
-    m_schedules[0]->setFatalJobErrorOccurredPointer(&m_fatalJobErrorOccured);
+    m_schedules.push_back(LoopContext(new Schedule(),this));
+    m_schedules[0].m_schedule->setFatalJobErrorOccurredPointer(&m_fatalJobErrorOccured);
     
   }
+
+EventProcessor::~EventProcessor()
+{
+  dispatch_release(m_eventLoopGroup);
+}
+
 void 
 EventProcessor::setSource(Source* iSource) {
   m_source = iSource;
@@ -30,60 +37,67 @@ EventProcessor::setSource(Source* iSource) {
 void
 EventProcessor::addPath(const std::string& iName,
                         const std::vector<std::string>& iModules) {
-  m_schedules[0]->addPath(iModules);
+  m_schedules[0].m_schedule->addPath(iModules);
 }
 void 
 EventProcessor::addProducer(Producer* iProd) {
-  m_schedules[0]->event()->addProducer(iProd);
+  m_schedules[0].m_schedule->event()->addProducer(iProd);
 }
 
 void
 EventProcessor::addFilter(Filter* iFilter) {
-  m_schedules[0]->addFilter(iFilter);
+  m_schedules[0].m_schedule->addFilter(iFilter);
 }
 
-static void get_and_process_one_event(
-                               dispatch_group_t iEventGroup,
-                               Source* iSource,
-                               Schedule& iSchedule) {
-  iSchedule.event()->reset();
-  //iEvent.reset();
+void
+ScheduleFilteringCallback::operator()(bool iShouldContinue) const {
+  EventProcessor::LoopContext* lc = static_cast<EventProcessor::LoopContext*>(m_context);
+  lc->filter(iShouldContinue);
+}
+
+void
+EventProcessor::LoopContext::filter(bool iShouldContinue) {
+  dispatch_group_t eventGroup = m_processor->m_eventLoopGroup;
+
+  if(iShouldContinue) {
+    dispatch_group_async_f(eventGroup, 
+                           dispatch_get_global_queue(0, 0),
+                           this,
+                           &EventProcessor::get_and_process_one_event_f);
+  };
+  dispatch_group_leave(eventGroup);
+}
+
+void 
+EventProcessor::get_and_process_one_event_f(void * context) 
+{
+  EventProcessor::LoopContext* lc = static_cast<EventProcessor::LoopContext*>(context);
+  dispatch_group_t eventGroup = lc->m_processor->m_eventLoopGroup;
+  Source* source = lc->m_processor->m_source;
+  Schedule& schedule = *(lc->m_schedule);
+  schedule.event()->reset();
   
-  if(iSource->setEventInfo(*(iSchedule.event()))) {
+  if(source->setEventInfo(*(schedule.event()))) {
     //Make sure to wait for all work done by iSchedule
-    dispatch_group_enter(iEventGroup);
+    dispatch_group_enter(eventGroup);
     
-    //items in a block become 'const' but we need non-const access to the event, hence use the pointer
-    Schedule* nonConstSchedule = &iSchedule;
-    iSchedule.process(^(bool iShouldContinue){
-      if(iShouldContinue) {
-        dispatch_group_async(iEventGroup, 
-                             dispatch_get_global_queue(0, 0),
-                             ^{get_and_process_one_event(iEventGroup,iSource,*nonConstSchedule);});
-      };
-      dispatch_group_leave(iEventGroup);
-    });
+    schedule.process(ScheduleFilteringCallback(context));
   }
 }
 
 void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
-  dispatch_group_t event_loop_group = dispatch_group_create();
-  Schedule* scheduleTemp = m_schedules[0];
-  dispatch_group_async(event_loop_group, 
-                       dispatch_get_global_queue(0, 0), 
-                       ^{
-                         get_and_process_one_event(event_loop_group, m_source, *scheduleTemp);                           
-                       });
+  m_schedules.reserve(iNumConcurrentEvents);
+  dispatch_group_async_f(m_eventLoopGroup, 
+                         dispatch_get_global_queue(0, 0),
+                         &m_schedules[0],
+                         &EventProcessor::get_and_process_one_event_f);
   for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
-    Schedule* scheduleTemp = m_schedules[0]->clone();
-    m_schedules.push_back(scheduleTemp);
-    dispatch_group_async(event_loop_group, 
-                         dispatch_get_global_queue(0, 0), 
-                         ^{
-                           get_and_process_one_event(event_loop_group, m_source, *scheduleTemp);                           
-                         });
-    
+    Schedule* scheduleTemp = m_schedules[0].m_schedule->clone();
+    m_schedules.push_back(LoopContext(scheduleTemp,this));
+    dispatch_group_async_f(m_eventLoopGroup, 
+                           dispatch_get_global_queue(0, 0),
+                           &m_schedules.back(),
+                           &EventProcessor::get_and_process_one_event_f);    
   }
-  dispatch_group_wait(event_loop_group, DISPATCH_TIME_FOREVER);
-  dispatch_release(event_loop_group);
+  dispatch_group_wait(m_eventLoopGroup, DISPATCH_TIME_FOREVER);
 }

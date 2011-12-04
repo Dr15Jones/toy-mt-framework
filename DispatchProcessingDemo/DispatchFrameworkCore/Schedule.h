@@ -11,7 +11,7 @@
 #include <vector>
 #include <string>
 #include "GroupHolder.h"
-#include "filtering_callback.h"
+#include "PathFilteringCallback.h"
 #include "Event.h"
 
 namespace demo {
@@ -20,12 +20,28 @@ namespace demo {
   class Filter;
   class FilterWrapper;
   
+  //NOTE: The implementation of ScheduleFilteringCallback is
+  // in the EventProcessor since it is the only class which
+  // ever requests a callback
+  class ScheduleFilteringCallback {
+  public:
+    explicit ScheduleFilteringCallback(void* iContext=0):
+    m_context(iContext) {}
+    
+    void operator()(bool) const;
+  private:
+    void* m_context;
+  };
+  
+  
   class Schedule {
   public:
+    friend class PathFilteringCallback;
+    
     Schedule();
     Schedule(const Schedule&);
     
-    void process(filtering_callback_t iCallback);
+    void process(ScheduleFilteringCallback iCallback);
 
     void reset();
     
@@ -40,17 +56,28 @@ namespace demo {
     
     Event* event();
     Schedule* clone();
+    
+    struct PathContext {
+      PathContext(Schedule* iSchedule, Path* iPath):
+      schedule(iSchedule), path(iPath) {}
+      Schedule* schedule;
+      Path* path;
+    };
+    
   private:
-    //NOTE: Must pass a heap based callback to this code
-    void processPresentPath(unsigned int iIndex);
+    static void processPresentPath(void*);
+    static void do_schedule_callback_f(void*);
+    static void reset_f(void*, size_t);
 
     //used for cloning
     Schedule(Event*);
     void addPath(Path* iPath);
     Event m_event;
-    std::vector<Path*> m_paths;
+    std::vector<PathContext> m_paths;
     std::vector<FilterWrapper*> m_filters;
     GroupHolder m_allPathsDoneGroup;
+    PathFilteringCallback m_callback;
+    ScheduleFilteringCallback m_scheduleCallback;
     bool* m_fatalJobErrorOccuredPtr;
   };
 }

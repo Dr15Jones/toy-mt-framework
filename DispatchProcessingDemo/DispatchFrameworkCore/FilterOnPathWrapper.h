@@ -10,22 +10,26 @@
 
 #ifndef DispatchProcessingDemo_FilterOnPathWrapper_h
 #define DispatchProcessingDemo_FilterOnPathWrapper_h
+#include "ModuleWrapper.h"
 
 namespace demo {
   class FilterWrapper;
   class Path;
-  class FilterOnPathWrapper {
+  class FilterOnPathWrapper: public ModuleWrapper {
   public:
-    FilterOnPathWrapper(FilterWrapper* iFilter, Path* iPath,
+    FilterOnPathWrapper(FilterWrapper* iFilter,
+                        Path* iPath,
+                        Event* iEvent,
                         size_t iIndex);
     
-    void filterAsync(void(^iCallback)(bool,bool));
+    void filterAsync();
     void reset();
     const std::string& label() const;
 
     FilterWrapper* filter() const;
 
   private:
+    void doWork();
     FilterWrapper* m_filter;
     Path* m_path;
     size_t m_index;

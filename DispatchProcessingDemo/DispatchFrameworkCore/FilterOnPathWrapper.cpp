@@ -13,6 +13,8 @@
 
 #include "FilterOnPathWrapper.h"
 #include "FilterWrapper.h"
+#include "Filter.h"
+#include "Path.h"
 
 using namespace demo;
 
@@ -23,7 +25,11 @@ FilterOnPathWrapper::filter() const
   return m_filter;
 }
 
-FilterOnPathWrapper::FilterOnPathWrapper(FilterWrapper* iFilter, Path* iPath, size_t iIndex):
+FilterOnPathWrapper::FilterOnPathWrapper(FilterWrapper* iFilter,
+                                         Path* iPath,
+                                         Event* iEvent,
+                                         size_t iIndex):
+demo::ModuleWrapper(iFilter->filter(),iEvent),
 m_filter(iFilter),m_path(iPath),m_index(iIndex)
 {
 }
@@ -33,39 +39,26 @@ void
 FilterOnPathWrapper::reset()
 {
   m_filter->reset();
+  ModuleWrapper::reset();
 }
 
 void
-FilterOnPathWrapper::filterAsync(void(^iCallback)(bool,bool))
+FilterOnPathWrapper::doWork()
 {
-  m_filter->filterAsync(iCallback);
-#if defined(NOT_DEFINED)
-  if(not m_wasRun) {
-    typedef void(^DoubleBoolCallback_t)(bool,bool);
-    DoubleBoolCallback_t heapCallback = Block_copy(iCallback);
-    
-    /*NOTE: The m_runQueue is only used to serialize the doFilter
-     and not for the getters. The reason is if the getters are 
-     set multiple times it doesn't matter since they will be set
-     with the exact same values. It only matters that the getters
-     are set before the first time 'doFilter' is called, which
-     is guaranteed by doPrefetchAndWork.
-     If we do not want the getters to be called multiple times then
-     we can do what we do for the EDProducers which is to use the
-     module's queue to serialize both the gets and the 'do'.
-     */
-    doPrefetchAndWork(m_runQueue,
-                      ^{
-                        if(!m_wasRun) {
-                          m_keep = filter()->doFilter(*(this->event()));
-                        }
-                        heapCallback(m_keep,true);
-                        Block_release(heapCallback);
-                      });
+  bool keep = m_filter->doFilter(*(this->event()));
+  m_path->doNextIfSuccess(keep, true, m_index);
+}
+
+void
+FilterOnPathWrapper::filterAsync()
+{
+  if(not m_filter->wasRun()) {    
+    doPrefetchAndWork();
   } else {
-    iCallback(m_keep,true);
+    //Still need to cal 'doWork' since that is where the
+    // path gets informed that the work was done
+    this->doWork();
   }
-#endif
 }
 
 

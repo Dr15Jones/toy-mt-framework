@@ -10,72 +10,69 @@
 #include <Block.h>
 #include <assert.h>
 #include "Path.h"
-#include "filtering_callback.h"
+#include "PathFilteringCallback.h"
 #include "FilterWrapper.h"
 
 
 using namespace demo;
 
-void Path::runAsync(Event& iEvent, filtering_callback_t iCallback) {
+void Path::runAsync(PathFilteringCallback iCallback) {
+  m_callback = iCallback;
   if(!m_filters.empty()) {
-    //need to make a copy since iCallback can be on the stack
-    filtering_callback_t heapCallback = Block_copy(iCallback);
-    
-    runFilterAsync(iEvent,0,heapCallback);
+    runFilterAsync(0);
   } else {
-    iCallback(true);
+    m_callback(true);
   }
 }
+
+
+void Path::doNextIfSuccess(bool iKeep, bool iSuccess, size_t iPreviousIndex) {
+  //something bad happened
+  if(!iSuccess) {
+    m_callback(false);
+  }
+  if(not *m_fatalJobErrorOccurredPtr && iKeep && iPreviousIndex+1 < m_filters.size()) {
+    //go to next
+    runFilterAsync(iPreviousIndex+1);
+  } else {
+    //finished path without an error
+    m_callback(true);
+  }  
+}
   
-void Path::runFilterAsync(Event& iEvent, 
-                      unsigned int iIndex,
-                      filtering_callback_t iCallback) const {
+void Path::runFilterAsync(size_t iIndex) {
   if (*m_fatalJobErrorOccurredPtr) {
     //There must have been a fatal problem on another path
-    iCallback(true);
-    Block_release(iCallback);
+    m_callback(true);
     return;
   }
     
-  //items in a block become 'const' but we need non-const access to the event, hence use the pointer
-  Event* nonConstEvent = &iEvent;
-  m_filters[iIndex]->filterAsync(iEvent, ^(bool iKeep, bool iSuccess) {
-    //something bad happened
-    if(!iSuccess) {
-      iCallback(false);
-      Block_release(iCallback);
-    }
-    if(not *m_fatalJobErrorOccurredPtr && iKeep && iIndex+1 < m_filters.size()) {
-      //go to next
-      runFilterAsync(*nonConstEvent,iIndex+1,iCallback);
-    } else {
-      //finished path without an error
-      iCallback(true);
-      Block_release(iCallback);
-    }
-  });
+  m_filters[iIndex].filterAsync();
 }
   
+void Path::reset_f(void* context, size_t iIndex) {
+  Path* that = static_cast<Path*>(context);
+  that->m_filters[iIndex].reset();
+}
+
 void Path::reset() {
-  dispatch_apply(m_filters.size(), dispatch_get_global_queue(0, 0), ^(size_t iIndex){
-    m_filters[iIndex]->reset();
-  });         
+  dispatch_apply_f(m_filters.size(), dispatch_get_global_queue(0, 0), this, &Path::reset_f);
 }
   
-void Path::addFilter(FilterWrapper* iFilter) {
-  m_filters.push_back(iFilter);
+void Path::addFilter(FilterWrapper* iFilter,Event*iEvent) {
+  m_filters.push_back(FilterOnPathWrapper(iFilter,this,iEvent,m_filters.size()));
 }
 
   
-Path* Path::clone(const std::vector<FilterWrapper*>& iWrappers) const {
+Path* Path::clone(const std::vector<FilterWrapper*>& iWrappers, Event*iEvent) const {
   std::auto_ptr<Path> newPath(new Path);
   newPath->m_filters.reserve(m_filters.size());
-  for (FilterWrapper* fw: m_filters) {
+  for (const FilterOnPathWrapper& fw: m_filters) {
     bool found = false;
     for(FilterWrapper* newFw: iWrappers) {
-      if(newFw->label() == fw->label()) {
+      if(newFw->label() == fw.label()) {
         found = true;
-        newPath->m_filters.push_back(newFw);
+        newPath->m_filters.push_back(FilterOnPathWrapper(newFw,newPath.get(),iEvent,newPath->m_filters.size()));
         break;
       }
     }
@@ -85,13 +82,4 @@ Path* Path::clone(const std::vector<FilterWrapper*>& iWrappers) const {
     }
   }
   return newPath.release();
-}
-  
-Path::Path(const Path& iOther):m_fatalJobErrorOccurredPtr(0) {
-  m_filters.reserve(iOther.m_filters.size());
-  for(std::vector<FilterWrapper*>::const_iterator it=iOther.m_filters.begin(), itEnd = iOther.m_filters.end();
-      it != itEnd;
-      ++it) {
-    m_filters.push_back(new FilterWrapper(*(*it)));
-  }
 }

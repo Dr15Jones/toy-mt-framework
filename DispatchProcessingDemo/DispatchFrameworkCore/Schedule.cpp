@@ -7,8 +7,8 @@
 //
 
 #include <iostream>
-#import <dispatch/dispatch.h>
-#import <Block.h>
+#include <dispatch/dispatch.h>
+#include <Block.h>
 #include <assert.h>
 
 #include "Schedule.h"
@@ -21,12 +21,16 @@ using namespace demo;
 Schedule::Schedule()
   : m_event(),
   m_allPathsDoneGroup(dispatch_group_create()),
+  m_callback(this),
+  m_scheduleCallback(),
   m_fatalJobErrorOccuredPtr(0){
 }
 
 Schedule::Schedule(Event* iEvent):
 m_event(*iEvent),
 m_allPathsDoneGroup(dispatch_group_create()),
+m_callback(this),
+m_scheduleCallback(),
 m_fatalJobErrorOccuredPtr(0)
 {  
 }
@@ -34,49 +38,49 @@ m_fatalJobErrorOccuredPtr(0)
 Schedule::Schedule(const Schedule& iOther):
 m_event(iOther.m_event),
 m_allPathsDoneGroup(dispatch_group_create()),
+m_callback(this),
+m_scheduleCallback(),
 m_fatalJobErrorOccuredPtr(iOther.m_fatalJobErrorOccuredPtr)
 {
   m_filters.reserve(iOther.m_filters.size());
   for(FilterWrapper* fw: iOther.m_filters) {
-    m_filters.push_back(new FilterWrapper(*fw,event()));
+    m_filters.push_back(new FilterWrapper(*fw));
   }
   
   
-  for(std::vector<Path*>::const_iterator it = iOther.m_paths.begin(), itEnd = iOther.m_paths.end();
+  for(std::vector<PathContext>::const_iterator it = iOther.m_paths.begin(), itEnd = iOther.m_paths.end();
       it != itEnd;
       ++it) {
-    addPath((*it)->clone(m_filters));
+    addPath((*it).path->clone(m_filters,&m_event));
   }
 }
 
+void
+Schedule::do_schedule_callback_f(void* iContext){
+  Schedule* that = reinterpret_cast<Schedule*>(iContext);
+  that->m_scheduleCallback(not *that->m_fatalJobErrorOccuredPtr);
+}
 
 void 
-Schedule::process(filtering_callback_t iCallback) {
+Schedule::process(ScheduleFilteringCallback iCallback) {
+  m_scheduleCallback = iCallback;
   //printf("Schedule::process\n");
   reset();
   if(!m_paths.empty()) {
-    //need to make a copy since iCallback can be on the stack
-    filtering_callback_t heapCallback = Block_copy(iCallback);
-    
-    //items in a block become 'const' but we need non-const access to the event, hence use the pointer
-    
-    for(unsigned int index=0; index<m_paths.size();++index) {
-      dispatch_group_async(m_allPathsDoneGroup.get(),dispatch_get_global_queue(0, 0), ^{
-        processPresentPath(index);
-      });
+    for(std::vector<PathContext>::iterator it = m_paths.begin(), itEnd = m_paths.end(); 
+        it != itEnd; ++it) {
+      dispatch_group_async_f(m_allPathsDoneGroup.get(),dispatch_get_global_queue(0, 0),
+                             &(*it),&Schedule::processPresentPath);
     }
-    dispatch_group_notify(m_allPathsDoneGroup.get(), dispatch_get_global_queue(0, 0),^{
-      heapCallback(not *m_fatalJobErrorOccuredPtr);
-      Block_release(heapCallback);
-    });
+    dispatch_group_notify_f(m_allPathsDoneGroup.get(), dispatch_get_global_queue(0, 0), this, do_schedule_callback_f);
   } else {
-    iCallback(true);
+    m_scheduleCallback(true);
   }
 }
 
 void 
 Schedule::addPath(Path* iPath) {
-  m_paths.push_back(iPath);
+  m_paths.push_back(PathContext(this,iPath));
   iPath->setFatalJobErrorOccurredPointer(m_fatalJobErrorOccuredPtr);
 }
 
@@ -86,7 +90,7 @@ Schedule::addPath(const std::vector<std::string>& iPath) {
   for(const std::string& name: iPath) {
     FilterWrapper* fw = findFilter(name);
     if(0!=fw) {
-      newPath->addFilter(fw);
+      newPath->addFilter(fw,&m_event);
     } else {
       assert(0=="Failed to find filter name");
       exit(1);
@@ -97,14 +101,18 @@ Schedule::addPath(const std::vector<std::string>& iPath) {
 
 void
 Schedule::addFilter(Filter* iFilter) {
-  m_filters.push_back(new FilterWrapper(iFilter,&m_event));
+  m_filters.push_back(new FilterWrapper(iFilter));
+}
+
+void
+Schedule::reset_f(void* iContext, size_t iIndex){
+  Schedule* that = reinterpret_cast<Schedule*>(iContext);
+  that->m_paths[iIndex].path->reset();
 }
 
 void 
 Schedule::reset() {
-  dispatch_apply(m_paths.size(), dispatch_get_global_queue(0, 0), ^(size_t iIndex){
-    m_paths[iIndex]->reset();
-  });
+  dispatch_apply_f(m_paths.size(), dispatch_get_global_queue(0, 0), this, &Schedule::reset_f);
 }
 
 Event*
@@ -128,21 +136,25 @@ Schedule::clone() {
   return new Schedule(*this);
 }
 
-//NOTE: Must pass a heap based callback to this code
+void
+PathFilteringCallback::operator()(bool iSuccess) const
+{
+  if(!iSuccess) {
+    *(m_schedule->m_fatalJobErrorOccuredPtr) = true;
+  }
+  dispatch_group_leave(m_schedule->m_allPathsDoneGroup.get());
+}
+
 void 
-Schedule::processPresentPath(unsigned int iIndex) {
+Schedule::processPresentPath(void*iContext) {
+  PathContext* pc = reinterpret_cast<PathContext*>(iContext);
   //printf("Schedule::processPresentPath %u\n",iIndex);      
-  if(*m_fatalJobErrorOccuredPtr) {
+  if(*(pc->schedule->m_fatalJobErrorOccuredPtr)) {
     return;
   }
   //Enter the group here and leave once the path has finished
-  dispatch_group_enter(m_allPathsDoneGroup.get());
+  dispatch_group_enter(pc->schedule->m_allPathsDoneGroup.get());
   
-  dispatch_group_t groupPtr = m_allPathsDoneGroup.get();
-  m_paths[iIndex]->runAsync(m_event, ^(bool iSuccess){
-    if(!iSuccess) {
-      *(this->m_fatalJobErrorOccuredPtr) = true;
-    }
-    dispatch_group_leave(groupPtr);
-  });
+  //dispatch_group_t groupPtr = m_allPathsDoneGroup.get();
+  pc->path->runAsync(pc->schedule->m_callback);
 }

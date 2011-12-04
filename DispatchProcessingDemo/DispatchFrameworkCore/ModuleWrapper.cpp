@@ -38,6 +38,7 @@ m_module(iModule),
 m_event(iEvent),
 m_prefetchGroup(dispatch_group_create()),
 m_prefetchQueue(dispatch_queue_create(unique_name(kPrefix+iModule->label()).c_str(), NULL)),
+m_runQueue(dispatch_queue_create(unique_name(kPrefix+iModule->label()).c_str(), NULL)),
 m_requestedPrefetch(false)
 {
 }
@@ -50,6 +51,14 @@ m_prefetchGroup(dispatch_group_create()),
 m_prefetchQueue(dispatch_queue_create(unique_name(kPrefix+iOther.m_module->label()).c_str(), NULL)),
 m_requestedPrefetch(false)
 {
+  if(m_module->threadType() == kThreadSafeBetweenInstances) {
+    //the same instance can be called reentrantly so each Schedule can have
+    // its own queue for each instance rather than having to share one queue
+    m_runQueue = dispatch_queue_create(unique_name(kPrefix+m_module->label()).c_str(), NULL);
+  } else {
+    m_runQueue=iOther.m_runQueue;
+    dispatch_retain(m_runQueue);
+  }
 }
 
 ModuleWrapper::ModuleWrapper(const ModuleWrapper& iOther):
@@ -57,14 +66,17 @@ m_module(iOther.m_module),
 m_event(iOther.m_event),
 m_prefetchGroup(iOther.m_prefetchGroup),
 m_prefetchQueue(iOther.m_prefetchQueue),
+m_runQueue(iOther.m_runQueue),
 m_requestedPrefetch(iOther.m_requestedPrefetch)
 {
   dispatch_retain(m_prefetchQueue);
+  dispatch_retain(m_runQueue);
 }
 
 ModuleWrapper::~ModuleWrapper()
 {
   dispatch_release(m_prefetchQueue);
+  dispatch_release(m_runQueue);
 }
 
 void 
@@ -78,113 +90,75 @@ void
 ModuleWrapper::doPrefetch()
 {
   if (not m_requestedPrefetch) {
-    m_requestedPrefetch=true;
     module()->prefetchAsync(*m_event, m_prefetchGroup); 
+    m_requestedPrefetch=true;
   }  
 }
 
-typedef void(^WorkBlock_t)();
 void 
-ModuleWrapper::doPrefetchAndWork(dispatch_queue_t iQueue, WorkBlock_t iWork)
+ModuleWrapper::do_work_task(void* iContext)
 {
-  if(module()->hasPrefetchItems()) {
-    if(not m_requestedPrefetch) {
-      /*dispatch_group_async(m_prefetchGroup.get(),m_prefetchQueue, 
-                           ^{
-                             if (not m_requestedPrefetch) {
-                               m_requestedPrefetch=true;
-                               module()->prefetchAsync(*m_event, m_prefetchGroup); 
-                             }
-                           }
-                           );*/
+  ModuleWrapper* wrapper = reinterpret_cast<ModuleWrapper*>(iContext);
+  wrapper->doWork();
+}
+
+void 
+ModuleWrapper::do_work_and_resume_queues_task(void* iContext)
+{
+  ModuleWrapper* wrapper = reinterpret_cast<ModuleWrapper*>(iContext);
+  wrapper->doWork();
+  //now that our work is done, we allow other instances use the queues
+  dispatch_resume(s_non_thread_safe_queue);
+  dispatch_resume(wrapper->m_runQueue);
+}
+
+void 
+ModuleWrapper::do_suspend_thread_unsafe_queue_before_work_task(void* iContext)
+{
+  //This is running in the s_non_thread_safe_queue so we know this
+  // instances is the one that has the 'lock'.
+  dispatch_suspend(s_non_thread_safe_queue);
+  dispatch_async_f(s_thread_safe_queue, iContext,
+                   ModuleWrapper::do_work_and_resume_queues_task);
+}
+
+void 
+ModuleWrapper::do_suspend_run_queue_before_work_task(void* iContext)
+{
+  //This is running in the m_runQueue so we know this instance is
+  // the one that has the 'lock'.
+  ModuleWrapper* wrapper = reinterpret_cast<ModuleWrapper*>(iContext);
+  dispatch_suspend(wrapper->m_runQueue);
+  dispatch_async_f(s_non_thread_safe_queue, 
+                   iContext,
+                   ModuleWrapper::do_suspend_thread_unsafe_queue_before_work_task);
+
+}
+
+void 
+ModuleWrapper::doPrefetchAndWork()
+{
+  if(module()->hasPrefetchItems() and (not m_requestedPrefetch)) {
       dispatch_group_async_f(m_prefetchGroup.get(),m_prefetchQueue,
                              static_cast<void*>(this),
                              ModuleWrapper::do_prefetch_task);
-    }
-    {
-      //NOTE: since iWork could be resident on the stack in the calling program we need
-      // to make a copy of it on the heap so that it can be called at a later time in the notify
-      WorkBlock_t workCopy= Block_copy(iWork);
-      
-      //when everything has been gotten, do our work
-      if(module()->threadType()!=kThreadUnsafe) {
-        dispatch_group_notify(m_prefetchGroup.get(),
-                              iQueue,
-                              workCopy);
-        Block_release(workCopy);
-      } else {
-        //Must first acquire the 'run' lock (i.e. be the running block
-        // in the 'run' queue and only after that acquire the 
-        // non-thread-safe lock since we must avoid having the same
-        // instance of this module be added to the non-thread-safe queue
-        // in the case we unblock that queue when we do a getByLabel
-        
-        //NOTE: need to copy this block so that it is no longer on the
-        // stack
-        WorkBlock_t temp = ^{
-          workCopy();
-          Block_release(workCopy);
-          dispatch_resume(s_non_thread_safe_queue);
-          dispatch_resume(iQueue);
-        };
-        WorkBlock_t tempCopy = Block_copy(temp);
-        
-        WorkBlock_t nonThreadSafeBlock = ^{
-          dispatch_suspend(s_non_thread_safe_queue);
-          dispatch_async(s_thread_safe_queue, tempCopy);
-          //NOTE: the dispatch_async has already done a 'retain'
-          Block_release(tempCopy);
-          
-        };
-        WorkBlock_t nonThreadSafeBlockCopy = Block_copy(nonThreadSafeBlock);
-        
-        dispatch_group_notify(m_prefetchGroup.get(),
-                              iQueue,
-                              ^{ dispatch_suspend(iQueue);
-                                dispatch_async(s_non_thread_safe_queue, 
-                                               nonThreadSafeBlockCopy);
-                                //NOTE: the dispatch_async has already done a 'retain'
-                                Block_release(nonThreadSafeBlockCopy);
-                              });
-        
-      }
-    }
+  }
+  //when everything has been gotten, do our work
+  if(module()->threadType()!=kThreadUnsafe) {
+    dispatch_group_notify_f(m_prefetchGroup.get(),
+                            m_runQueue,
+                            static_cast<void*>(this),
+                            ModuleWrapper::do_work_task);
   } else {
-    //just do the work
-    //NOTE: since iWork could be resident on the stack in the calling program we need
-    // to make a copy of it on the heap so that it can be called at a later time in the notify
-    WorkBlock_t workCopy= Block_copy(iWork);
-    if(module()->threadType()!=kThreadUnsafe) {
-      //Q: Could we just call 'iWork' right here? Are we always running in the thread safe queue already?
-      dispatch_async(iQueue,
-                     workCopy);
-      Block_release(workCopy);
-    } else {
-      WorkBlock_t temp = ^{
-        workCopy();
-        Block_release(workCopy);
-        dispatch_resume(s_non_thread_safe_queue);
-        dispatch_resume(iQueue);
-      };
-      WorkBlock_t tempCopy = Block_copy(temp);
+    //Must first acquire the 'run' lock (i.e. be the running block
+    // in the 'run' queue and only after that acquire the 
+    // non-thread-safe lock since we must avoid having the same
+    // instance of this module be added to the non-thread-safe queue
+    // in the case we unblock that queue when we do a getByLabel
+    dispatch_group_notify_f(m_prefetchGroup.get(),
+                            m_runQueue,
+                            this,
+                            ModuleWrapper::do_suspend_run_queue_before_work_task);
       
-      WorkBlock_t nonThreadSafeBlock = ^{
-        dispatch_suspend(s_non_thread_safe_queue);
-        dispatch_async(s_thread_safe_queue, tempCopy);
-        //NOTE: the dispatch_async has already done a 'retain'
-        Block_release(tempCopy);
-        
-      };
-      WorkBlock_t nonThreadSafeBlockCopy = Block_copy(nonThreadSafeBlock);
-      
-      //std::cout <<"not thread safe"<<std::endl;
-      dispatch_async(iQueue,
-                     ^{ dispatch_suspend(iQueue);
-                       dispatch_async(s_non_thread_safe_queue, 
-                                      nonThreadSafeBlockCopy);
-                       //NOTE: the dispatch_async has already done a 'retain'
-                       Block_release(nonThreadSafeBlockCopy);
-                     });
-    }
   }
 }
