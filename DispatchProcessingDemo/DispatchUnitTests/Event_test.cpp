@@ -112,15 +112,18 @@ namespace  {
     m_queue(dispatch_queue_create(iName,NULL)) {
       //dispatch_retain(m_queue);
     }
+    
     int increment() {
-      __block int v = 0;
-      dispatch_sync(m_queue, ^{v=++m_count;});
+      int v = 0;
+      Context c(m_count,v);
+      dispatch_sync_f(m_queue, &c, ThreadSafeCounter::increment_task);
       return v;
     }
     
     int value() {
-      __block int v=0;
-      dispatch_sync(m_queue, ^{v=m_count;});
+      int v=0;
+      Context c(m_count,v);
+      dispatch_sync_f(m_queue,&c,ThreadSafeCounter::value_task);
       return v;
     }
     
@@ -128,6 +131,22 @@ namespace  {
       dispatch_release(m_queue);
     }
   private:
+    
+    struct Context {
+      Context(int& iCount, int& iValue):
+      count(&iCount), value(&iValue) {}
+      int* count;
+      int* value;
+    };
+    static void increment_task(void* iContext) {
+      Context* c = reinterpret_cast<Context*>(iContext);
+      *(c->value) = ++(*c->count);
+    };
+    static void value_task(void* iContext) {
+      Context* c = reinterpret_cast<Context*>(iContext);
+      *(c->value) = (*c->count);
+    };
+    
     int m_count;
     dispatch_queue_t m_queue;
   };
@@ -321,6 +340,12 @@ void Event_test::simultaneousThreadUnsafeOneEvent()
   CPPUNIT_ASSERT(wasChanged==false);
 }
 
+static void get_task(void* iContext, size_t iIndex) {
+  demo::Event** pEvents = reinterpret_cast<demo::Event**>(iContext);
+  pEvents[iIndex]->get("access",""); 
+
+}
+
 void Event_test::simultaneousBetweenInstancesTwoEvents()
 {
   ThreadSafeCounter count("gov.fnal.counter");
@@ -339,9 +364,7 @@ void Event_test::simultaneousBetweenInstancesTwoEvents()
   const demo::Event* events[2]={&event1,event2.get()};
   const demo::Event** pEvents=events;
   
-  dispatch_apply(2, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, NULL), ^(size_t index){
-    pEvents[index]->get("access",""); 
-  });
+  dispatch_apply_f(2, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, NULL), pEvents,get_task);
   CPPUNIT_ASSERT(count.value()==2);
   CPPUNIT_ASSERT(wasChanged==true);
 }
@@ -363,9 +386,7 @@ void Event_test::simultaneousBetweenModulesTwoEvents()
   const demo::Event* events[2]={&event1,event2.get()};
   const demo::Event** pEvents=events;
   
-  dispatch_apply(2, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, NULL), ^(size_t index){
-    pEvents[index]->get("access",""); 
-  });
+  dispatch_apply_f(2, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, NULL), pEvents,get_task);
   CPPUNIT_ASSERT(count.value()==2);
   CPPUNIT_ASSERT(wasChanged==false);
 }
@@ -387,9 +408,7 @@ void Event_test::simultaneousThreadUnsafeTwoEvents()
   const demo::Event* events[2]={&event1,event2.get()};
   const demo::Event** pEvents=events;
   
-  dispatch_apply(2, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, NULL), ^(size_t index){
-    pEvents[index]->get("access",""); 
-  });
+  dispatch_apply_f(2, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, NULL), const_cast<demo::Event**>(pEvents),get_task);
   CPPUNIT_ASSERT(count.value()==2);
   CPPUNIT_ASSERT(wasChanged==false);
 }
