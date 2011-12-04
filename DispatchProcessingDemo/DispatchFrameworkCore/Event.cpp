@@ -106,10 +106,6 @@ Event::getAsyncImpl(Getter* iGetter, GroupHolder iGroupDoneWithGet) const
 void 
 Event::getAsync(Getter* iGetter, GroupHolder iGroupDoneWithGet) const
 {
-   //set entering the group now before doing any asynchronous operations
-   //dispatch_group_async(iGroupDoneWithGet.get(), s_thread_safe_queue, ^{
-   //   getAsyncImpl(iGetter,iGroupDoneWithGet);
-   //});
   getAsyncImpl(iGetter, iGroupDoneWithGet);
 }
 
