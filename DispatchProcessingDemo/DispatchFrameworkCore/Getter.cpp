@@ -7,7 +7,7 @@
  *
  */
 
-#import "Getter.h"
+#include "Getter.h"
 
 using namespace demo;
 
