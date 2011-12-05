@@ -177,16 +177,16 @@ namespace  {
 
 void Event_test::getSyncDirect()
 {
-  ValueProd one("one","one",1);
-  ValueProd two("two","two",2);
+  ValueProd* one(new ValueProd("one","one",1));
+  ValueProd* two(new ValueProd("two","two",2));
   
   demo::Event event;
   event.setIndex(1);
   
   CPPUNIT_ASSERT(event.index()==1);
   
-  event.addProducer(&one);
-  event.addProducer(&two);
+  event.addProducer(one);
+  event.addProducer(two);
   
   CPPUNIT_ASSERT(event.get("one","one")==1);
   CPPUNIT_ASSERT(event.get("two","two")==2);
@@ -195,22 +195,22 @@ void Event_test::getSyncDirect()
 
 void Event_test::getSyncIndirect()
 {
-  ValueProd one("one","one",1);
-  ValueProd two("two","two",2);
+  ValueProd* one(new ValueProd("one","one",1));
+  ValueProd* two(new ValueProd("two","two",2));
   std::vector<std::pair<std::string, std::string> > toGet;
   
   toGet.push_back(std::pair<std::string,std::string>("one","one"));
   toGet.push_back(std::pair<std::string,std::string>("two","two"));
-  SumSyncProd sum("sum","",toGet);
+  SumSyncProd* sum(new SumSyncProd("sum","",toGet));
   
   demo::Event event;
   event.setIndex(1);
   
   CPPUNIT_ASSERT(event.index()==1);
   
-  event.addProducer(&one);
-  event.addProducer(&two);
-  event.addProducer(&sum);
+  event.addProducer(one);
+  event.addProducer(two);
+  event.addProducer(sum);
   
   CPPUNIT_ASSERT(event.get("sum","")==3);
   
@@ -218,22 +218,22 @@ void Event_test::getSyncIndirect()
 
 void Event_test::getSyncIndirectWithGetter()
 {
-  ValueProd one("one","one",1);
-  ValueProd two("two","two",2);
+  ValueProd* one(new ValueProd("one","one",1));
+  ValueProd* two(new ValueProd("two","two",2));
   std::vector<std::pair<std::string, std::string> > toGet;
   
   toGet.push_back(std::pair<std::string,std::string>("one","one"));
   toGet.push_back(std::pair<std::string,std::string>("two","two"));
-  SumGetterProd sum("sum","",toGet);
+  SumGetterProd* sum(new SumGetterProd("sum","",toGet));
   
   demo::Event event;
   event.setIndex(1);
   
   CPPUNIT_ASSERT(event.index()==1);
   
-  event.addProducer(&one);
-  event.addProducer(&two);
-  event.addProducer(&sum);
+  event.addProducer(one);
+  event.addProducer(two);
+  event.addProducer(sum);
   
   CPPUNIT_ASSERT(event.get("sum","")==3);
   
@@ -244,24 +244,24 @@ void Event_test::callOnce()
   ThreadSafeCounter count("gov.fnal.counter");
   bool wasChanged=false;
   
-  AccessTestingProd at("access","",demo::kThreadSafeBetweenInstances,count,wasChanged);
+  AccessTestingProd* at(new AccessTestingProd("access","",demo::kThreadSafeBetweenInstances,count,wasChanged));
   std::vector<std::pair<std::string, std::string> > toGet;
   toGet.push_back(std::pair<std::string,std::string>("access",""));
-  SumSyncProd sum1("sum1","",toGet);
-  SumSyncProd sum2("sum2","",toGet);
+  SumSyncProd* sum1(new SumSyncProd("sum1","",toGet));
+  SumSyncProd* sum2(new SumSyncProd("sum2","",toGet));
 
   toGet.clear();
   toGet.push_back(std::pair<std::string,std::string>("sum1",""));
   toGet.push_back(std::pair<std::string,std::string>("sum2",""));
-  SumSyncProd sum3("sum3","",toGet);
+  SumSyncProd* sum3(new SumSyncProd("sum3","",toGet));
 
   demo::Event event;
   event.setIndex(1);
   
-  event.addProducer(&at);
-  event.addProducer(&sum1);
-  event.addProducer(&sum2);
-  event.addProducer(&sum3);
+  event.addProducer(at);
+  event.addProducer(sum1);
+  event.addProducer(sum2);
+  event.addProducer(sum3);
   
   CPPUNIT_ASSERT(event.get("sum3","")==2);
   CPPUNIT_ASSERT(count.value()==1);
@@ -273,19 +273,19 @@ void Event_test::simultaneousBetweenInstancesOneEvent()
   ThreadSafeCounter count("gov.fnal.counter");
   bool wasChanged=false;
   
-  AccessTestingProd at1("access1","",demo::kThreadSafeBetweenInstances,count,wasChanged);
-  AccessTestingProd at2("access2","",demo::kThreadSafeBetweenInstances,count,wasChanged);
+  AccessTestingProd* at1(new AccessTestingProd("access1","",demo::kThreadSafeBetweenInstances,count,wasChanged));
+  AccessTestingProd* at2(new AccessTestingProd("access2","",demo::kThreadSafeBetweenInstances,count,wasChanged));
   std::vector<std::pair<std::string, std::string> > toGet;
   toGet.push_back(std::pair<std::string,std::string>("access1",""));
   toGet.push_back(std::pair<std::string,std::string>("access2",""));
-  SumGetterProd sum3("sum3","",toGet);
+  SumGetterProd* sum3(new SumGetterProd("sum3","",toGet));
   
   demo::Event event;
   event.setIndex(1);
   
-  event.addProducer(&at1);
-  event.addProducer(&at2);
-  event.addProducer(&sum3);
+  event.addProducer(at1);
+  event.addProducer(at2);
+  event.addProducer(sum3);
   
   CPPUNIT_ASSERT(event.get("sum3","")==2);
   CPPUNIT_ASSERT(count.value()==2);
@@ -297,19 +297,19 @@ void Event_test::simultaneousBetweenModulesOneEvent()
   ThreadSafeCounter count("gov.fnal.counter");
   bool wasChanged=false;
   
-  AccessTestingProd at1("access1","",demo::kThreadSafeBetweenModules,count,wasChanged);
-  AccessTestingProd at2("access2","",demo::kThreadSafeBetweenModules,count,wasChanged);
+  AccessTestingProd* at1(new AccessTestingProd("access1","",demo::kThreadSafeBetweenModules,count,wasChanged));
+  AccessTestingProd* at2(new AccessTestingProd("access2","",demo::kThreadSafeBetweenModules,count,wasChanged));
   std::vector<std::pair<std::string, std::string> > toGet;
   toGet.push_back(std::pair<std::string,std::string>("access1",""));
   toGet.push_back(std::pair<std::string,std::string>("access2",""));
-  SumGetterProd sum3("sum3","",toGet);
+  SumGetterProd* sum3(new SumGetterProd("sum3","",toGet));
   
   demo::Event event;
   event.setIndex(1);
   
-  event.addProducer(&at1);
-  event.addProducer(&at2);
-  event.addProducer(&sum3);
+  event.addProducer(at1);
+  event.addProducer(at2);
+  event.addProducer(sum3);
   
   CPPUNIT_ASSERT(event.get("sum3","")==2);
   CPPUNIT_ASSERT(count.value()==2);
@@ -321,19 +321,19 @@ void Event_test::simultaneousThreadUnsafeOneEvent()
   ThreadSafeCounter count("gov.fnal.counter");
   bool wasChanged=false;
   
-  AccessTestingProd at1("access1","",demo::kThreadUnsafe,count,wasChanged);
-  AccessTestingProd at2("access2","",demo::kThreadUnsafe,count,wasChanged);
+  AccessTestingProd* at1(new AccessTestingProd("access1","",demo::kThreadUnsafe,count,wasChanged));
+  AccessTestingProd* at2(new AccessTestingProd("access2","",demo::kThreadUnsafe,count,wasChanged));
   std::vector<std::pair<std::string, std::string> > toGet;
   toGet.push_back(std::pair<std::string,std::string>("access1",""));
   toGet.push_back(std::pair<std::string,std::string>("access2",""));
-  SumGetterProd sum3("sum3","",toGet);
+  SumGetterProd* sum3(new SumGetterProd("sum3","",toGet));
   
   demo::Event event;
   event.setIndex(1);
   
-  event.addProducer(&at1);
-  event.addProducer(&at2);
-  event.addProducer(&sum3);
+  event.addProducer(at1);
+  event.addProducer(at2);
+  event.addProducer(sum3);
   
   CPPUNIT_ASSERT(event.get("sum3","")==2);
   CPPUNIT_ASSERT(count.value()==2);
@@ -351,12 +351,12 @@ void Event_test::simultaneousBetweenInstancesTwoEvents()
   ThreadSafeCounter count("gov.fnal.counter");
   bool wasChanged=false;
   
-  AccessTestingProd at("access","",demo::kThreadSafeBetweenInstances,count,wasChanged);
+  AccessTestingProd* at( new AccessTestingProd("access","",demo::kThreadSafeBetweenInstances,count,wasChanged));
   
   demo::Event event1;
   event1.setIndex(1);
   
-  event1.addProducer(&at);
+  event1.addProducer(at);
   
   std::auto_ptr<demo::Event> event2(event1.clone());
   event2->setIndex(2);
@@ -374,12 +374,12 @@ void Event_test::simultaneousBetweenModulesTwoEvents()
   ThreadSafeCounter count("gov.fnal.counter");
   bool wasChanged=false;
   
-  AccessTestingProd at("access","",demo::kThreadSafeBetweenModules,count,wasChanged);
+  AccessTestingProd* at(new AccessTestingProd("access","",demo::kThreadSafeBetweenModules,count,wasChanged));
   
   demo::Event event1;
   event1.setIndex(1);
   
-  event1.addProducer(&at);
+  event1.addProducer(at);
   std::auto_ptr<demo::Event> event2(event1.clone());
   event2->setIndex(2);
 
@@ -396,12 +396,12 @@ void Event_test::simultaneousThreadUnsafeTwoEvents()
   ThreadSafeCounter count("gov.fnal.counter");
   bool wasChanged=false;
   
-  AccessTestingProd at("access","",demo::kThreadUnsafe,count,wasChanged);
+  AccessTestingProd* at(new AccessTestingProd("access","",demo::kThreadUnsafe,count,wasChanged));
   
   demo::Event event1;
   event1.setIndex(3);
   
-  event1.addProducer(&at);
+  event1.addProducer(at);
   std::auto_ptr<demo::Event> event2(event1.clone());
   event2->setIndex(4);
 

@@ -9,6 +9,7 @@
 #ifndef DispatchProcessingDemo_ProducerWrapper_h
 #define DispatchProcessingDemo_ProducerWrapper_h
 
+#include <boost/shared_ptr.hpp>
 #include <dispatch/dispatch.h>
 #include "GroupHolder.h"
 #include "ModuleWrapper.h"
@@ -41,8 +42,10 @@ namespace demo {
     ProducerWrapper& operator=(const ProducerWrapper&);
     
     dispatch_queue_t m_runQueue;
+    boost::shared_ptr<Producer> m_producer;
     GroupHolder m_group;
     bool m_wasRun;
+
   };
 }
 

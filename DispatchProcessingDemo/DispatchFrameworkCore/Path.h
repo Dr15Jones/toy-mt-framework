@@ -9,8 +9,10 @@
 #ifndef DispatchProcessingDemo_Path_h
 #define DispatchProcessingDemo_Path_h
 #include <vector>
+#include <boost/shared_ptr.hpp>
 #include "PathFilteringCallback.h"
 #include "FilterOnPathWrapper.h"
+
 
 namespace demo {
   class Event;
@@ -30,7 +32,7 @@ namespace demo {
     
     void addFilter(FilterWrapper* iFilter, Event*);
     
-    Path* clone(const std::vector<FilterWrapper*>& iWrappers, Event*) const;
+    Path* clone(const std::vector<boost::shared_ptr<FilterWrapper> >& iWrappers, Event*) const;
     
     void doNextIfSuccess(bool iKeep, bool iSuccess, size_t iPreviousIndex);
   private:

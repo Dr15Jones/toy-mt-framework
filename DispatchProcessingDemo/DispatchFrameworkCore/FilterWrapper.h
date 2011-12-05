@@ -10,7 +10,7 @@
 
 #ifndef DispatchProcessingDemo_FilterWrapper_h
 #define DispatchProcessingDemo_FilterWrapper_h
-
+#include <boost/shared_ptr.hpp>
 
 namespace demo {
   class Filter;
@@ -28,7 +28,7 @@ namespace demo {
     Filter* filter() const;
     
   private:
-    Filter* m_filter;
+    boost::shared_ptr<Filter> m_filter;
     bool m_keep;
     bool m_wasRun;    
   };

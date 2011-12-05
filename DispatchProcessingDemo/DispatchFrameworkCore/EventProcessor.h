@@ -9,6 +9,8 @@
 #ifndef DispatchProcessingDemo_EventProcessor_h
 #define DispatchProcessingDemo_EventProcessor_h
 #include <vector>
+#include "Schedule.h"
+#include <boost/shared_ptr.hpp>
 #include <dispatch/dispatch.h>
 
 namespace demo {
@@ -33,19 +35,19 @@ namespace demo {
     class LoopContext {
       friend class EventProcessor;
     public: 
-      LoopContext():m_schedule(0),m_processor(0) {}
+      LoopContext():m_schedule(),m_processor(0) {}
       void filter(bool);
     private:
       LoopContext(Schedule* iSchedule, EventProcessor* iProc):
       m_schedule(iSchedule), m_processor(iProc) {}
-      Schedule* m_schedule;
+      boost::shared_ptr<Schedule> m_schedule;
       EventProcessor* m_processor;
     };
     friend class LoopContext;
   private:
     static void get_and_process_one_event_f(void*);
     
-    Source* m_source;
+    boost::shared_ptr<Source> m_source;
     dispatch_group_t m_eventLoopGroup;
     std::vector<LoopContext> m_schedules;
     bool m_fatalJobErrorOccured;    

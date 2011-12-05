@@ -10,8 +10,10 @@
 #define DispatchProcessingDemo_Schedule_h
 #include <vector>
 #include <string>
+#include <boost/shared_ptr.hpp>
 #include "GroupHolder.h"
 #include "PathFilteringCallback.h"
+#include "Path.h"
 #include "Event.h"
 
 namespace demo {
@@ -61,7 +63,7 @@ namespace demo {
       PathContext(Schedule* iSchedule, Path* iPath):
       schedule(iSchedule), path(iPath) {}
       Schedule* schedule;
-      Path* path;
+      boost::shared_ptr<Path> path;
     };
     
   private:
@@ -74,7 +76,7 @@ namespace demo {
     void addPath(Path* iPath);
     Event m_event;
     std::vector<PathContext> m_paths;
-    std::vector<FilterWrapper*> m_filters;
+    std::vector<boost::shared_ptr<FilterWrapper> > m_filters;
     GroupHolder m_allPathsDoneGroup;
     PathFilteringCallback m_callback;
     ScheduleFilteringCallback m_scheduleCallback;

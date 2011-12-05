@@ -20,7 +20,7 @@ inline
 Filter*
 FilterWrapper::filter() const
 {
-  return m_filter;
+  return m_filter.get();
 }
 
 FilterWrapper::FilterWrapper(Filter* iFilter):

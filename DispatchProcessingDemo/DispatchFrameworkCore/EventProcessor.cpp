@@ -16,7 +16,7 @@
 using namespace demo;
 
 EventProcessor::EventProcessor():
-  m_source(0),
+  m_source(),
   m_eventLoopGroup(dispatch_group_create()),
   m_fatalJobErrorOccured(false)
   {
@@ -32,7 +32,7 @@ EventProcessor::~EventProcessor()
 
 void 
 EventProcessor::setSource(Source* iSource) {
-  m_source = iSource;
+  m_source = boost::shared_ptr<Source>(iSource);
 }
 void
 EventProcessor::addPath(const std::string& iName,
@@ -73,7 +73,7 @@ EventProcessor::get_and_process_one_event_f(void * context)
 {
   EventProcessor::LoopContext* lc = static_cast<EventProcessor::LoopContext*>(context);
   dispatch_group_t eventGroup = lc->m_processor->m_eventLoopGroup;
-  Source* source = lc->m_processor->m_source;
+  Source* source = lc->m_processor->m_source.get();
   Schedule& schedule = *(lc->m_schedule);
   schedule.event()->reset();
   
