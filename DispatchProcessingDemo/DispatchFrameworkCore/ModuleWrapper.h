@@ -33,20 +33,24 @@ namespace demo {
       m_requestedPrefetch=false;
     }
 
+    void prefetchAsync();
+
+    dispatch_queue_t runQueue() const {
+      return m_runQueue;
+    }
+
+    dispatch_group_t prefetchGroup() const {
+      return m_prefetchGroup.get();
+    }
+    
   protected:
     ModuleWrapper(const ModuleWrapper&, Event*);
     ModuleWrapper(const ModuleWrapper&);
+    ModuleWrapper& operator=(const ModuleWrapper&);
     
-    void doPrefetchAndWork();
-
   private:
     static void do_prefetch_task(void* iContext);
     void doPrefetch();
-    static void do_work_task(void* iContext);
-    static void do_work_and_resume_queues_task(void* iContext);
-    static void do_suspend_thread_unsafe_queue_before_work_task(void* iContext);
-    static void do_suspend_run_queue_before_work_task(void* iContext);
-    virtual void doWork() =0;
     
     
     Module* m_module;
