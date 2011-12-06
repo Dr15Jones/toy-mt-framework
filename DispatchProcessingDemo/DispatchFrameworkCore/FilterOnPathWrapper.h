@@ -10,16 +10,15 @@
 
 #ifndef DispatchProcessingDemo_FilterOnPathWrapper_h
 #define DispatchProcessingDemo_FilterOnPathWrapper_h
-#include "ModuleWrapper.h"
+#include "PrefetchAndWorkWrapper.h"
 
 namespace demo {
   class FilterWrapper;
   class Path;
-  class FilterOnPathWrapper: public ModuleWrapper {
+  class FilterOnPathWrapper: public PrefetchAndWorkWrapper {
   public:
     FilterOnPathWrapper(FilterWrapper* iFilter,
                         Path* iPath,
-                        Event* iEvent,
                         size_t iIndex);
     
     void filterAsync();

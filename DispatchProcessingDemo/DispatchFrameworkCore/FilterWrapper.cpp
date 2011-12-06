@@ -17,31 +17,42 @@
 using namespace demo;
 
 inline
-Filter*
+boost::shared_ptr<Filter>
 FilterWrapper::filter() const
 {
-  return m_filter.get();
+  return m_filter;
 }
 
-FilterWrapper::FilterWrapper(Filter* iFilter):
+FilterWrapper::FilterWrapper(boost::shared_ptr<Filter> iFilter,Event* iEvent):
+ModuleWrapper(iFilter.get(),iEvent),
 m_filter(iFilter),
 m_keep(false),
 m_wasRun(false)
 {
 }
 
+FilterWrapper::FilterWrapper(const FilterWrapper& iWrapper,Event* iEvent):
+ModuleWrapper(iWrapper,iEvent),
+m_filter(iWrapper.filter()),
+m_keep(false),
+m_wasRun(false)
+{
+}
+
+
 void
 FilterWrapper::reset()
 {
   m_wasRun=false;
   m_keep=false;
+  ModuleWrapper::reset();
 }
 
 bool
-FilterWrapper::doFilter(Event& iEvent)
+FilterWrapper::doFilter()
 {
   if(!m_wasRun) {
-    m_keep = filter()->doFilter(iEvent);
+    m_keep = filter()->doFilter(*event());
     m_wasRun=true;
   }
   return m_keep;

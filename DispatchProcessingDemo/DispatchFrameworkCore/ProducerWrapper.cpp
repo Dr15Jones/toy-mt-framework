@@ -42,6 +42,7 @@ ProducerWrapper::producer() const
 
 ProducerWrapper::ProducerWrapper(Producer* iProd, Event* iEvent):
 ModuleWrapper(iProd,iEvent),
+PrefetchAndWorkWrapper(this),
 m_producer(iProd),
 m_group(dispatch_group_create()),
 m_wasRun(false)
@@ -51,6 +52,7 @@ m_wasRun(false)
 ProducerWrapper::ProducerWrapper(const ProducerWrapper& iOther,
                                  Event* iEvent):
 ModuleWrapper(iOther,iEvent),
+PrefetchAndWorkWrapper(this),
 m_group(dispatch_group_create()),
 m_producer(iOther.m_producer),
 m_wasRun(false)
@@ -59,6 +61,7 @@ m_wasRun(false)
 
 ProducerWrapper::ProducerWrapper(const ProducerWrapper& iOther):
 ModuleWrapper(iOther),
+PrefetchAndWorkWrapper(this),
 m_group(iOther.m_group),
 m_producer(iOther.m_producer),
 m_wasRun(iOther.m_wasRun)

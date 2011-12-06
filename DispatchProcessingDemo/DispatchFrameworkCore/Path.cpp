@@ -60,7 +60,7 @@ void Path::reset() {
 }
   
 void Path::addFilter(FilterWrapper* iFilter,Event*iEvent) {
-  m_filters.push_back(FilterOnPathWrapper(iFilter,this,iEvent,m_filters.size()));
+  m_filters.push_back(FilterOnPathWrapper(iFilter,this,m_filters.size()));
 }
 
   
@@ -72,7 +72,7 @@ Path* Path::clone(const std::vector<boost::shared_ptr<FilterWrapper> >& iWrapper
     for(boost::shared_ptr<FilterWrapper> newFw: iWrappers) {
       if(newFw->label() == fw.label()) {
         found = true;
-        newPath->m_filters.push_back(FilterOnPathWrapper(newFw.get(),newPath.get(),iEvent,newPath->m_filters.size()));
+        newPath->m_filters.push_back(FilterOnPathWrapper(newFw.get(),newPath.get(),newPath->m_filters.size()));
         break;
       }
     }

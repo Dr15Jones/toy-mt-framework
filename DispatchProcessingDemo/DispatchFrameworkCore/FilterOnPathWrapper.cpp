@@ -27,9 +27,8 @@ FilterOnPathWrapper::filter() const
 
 FilterOnPathWrapper::FilterOnPathWrapper(FilterWrapper* iFilter,
                                          Path* iPath,
-                                         Event* iEvent,
                                          size_t iIndex):
-demo::ModuleWrapper(iFilter->filter(),iEvent),
+demo::PrefetchAndWorkWrapper(iFilter),
 m_filter(iFilter),m_path(iPath),m_index(iIndex)
 {
 }
@@ -39,13 +38,12 @@ void
 FilterOnPathWrapper::reset()
 {
   m_filter->reset();
-  ModuleWrapper::reset();
 }
 
 void
 FilterOnPathWrapper::doWork()
 {
-  bool keep = m_filter->doFilter(*(this->event()));
+  bool keep = m_filter->doFilter();
   m_path->doNextIfSuccess(keep, true, m_index);
 }
 

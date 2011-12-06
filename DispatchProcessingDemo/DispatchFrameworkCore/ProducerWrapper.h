@@ -13,13 +13,14 @@
 #include <dispatch/dispatch.h>
 #include "GroupHolder.h"
 #include "ModuleWrapper.h"
+#include "PrefetchAndWorkWrapper.h"
 
 namespace demo {
   
   class Producer;
   class Event;
   
-  class ProducerWrapper : private ModuleWrapper {
+  class ProducerWrapper : private ModuleWrapper,PrefetchAndWorkWrapper {
   public:
     explicit ProducerWrapper(Producer*, Event*);
     ProducerWrapper(const ProducerWrapper&, Event*);
@@ -41,7 +42,6 @@ namespace demo {
 
     ProducerWrapper& operator=(const ProducerWrapper&);
     
-    dispatch_queue_t m_runQueue;
     boost::shared_ptr<Producer> m_producer;
     GroupHolder m_group;
     bool m_wasRun;

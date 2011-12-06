@@ -44,7 +44,7 @@ m_fatalJobErrorOccuredPtr(iOther.m_fatalJobErrorOccuredPtr)
 {
   m_filters.reserve(iOther.m_filters.size());
   for(boost::shared_ptr<FilterWrapper> fw: iOther.m_filters) {
-    m_filters.push_back(boost::shared_ptr<FilterWrapper>(new FilterWrapper(*fw)));
+    m_filters.push_back(boost::shared_ptr<FilterWrapper>(new FilterWrapper(*fw,&m_event)));
   }
   
   
@@ -101,7 +101,7 @@ Schedule::addPath(const std::vector<std::string>& iPath) {
 
 void
 Schedule::addFilter(Filter* iFilter) {
-  m_filters.push_back(boost::shared_ptr<FilterWrapper>(new FilterWrapper(iFilter)));
+  m_filters.push_back(boost::shared_ptr<FilterWrapper>(new FilterWrapper(boost::shared_ptr<Filter>(iFilter),&m_event)));
 }
 
 void
