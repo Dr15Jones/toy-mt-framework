@@ -119,6 +119,9 @@ ProducerWrapper::doWork()
     //dispatch_debug(m_runQueue, "doProduceAsyncImpl %s %lu",producer()->label().c_str(),nonConstEvent->index());
     //NOTE: in real application this would have a 'try..catch' around it
     producer()->doProduce(*event());
+    //NOTE: needs a memory barrier to guarantee that
+    // m_wasRun is never set until after doFilter is run
+    __sync_synchronize();
     this->m_wasRun = true;
   }
   

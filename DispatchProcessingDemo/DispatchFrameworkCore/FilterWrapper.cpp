@@ -53,6 +53,9 @@ FilterWrapper::doFilter()
 {
   if(!m_wasRun) {
     m_keep = filter()->doFilter(*event());
+    //NOTE: needs a memory barrier to guarantee that
+    // m_wasRun is never set until after doFilter is run
+    __sync_synchronize();
     m_wasRun=true;
   }
   return m_keep;
