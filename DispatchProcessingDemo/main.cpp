@@ -15,7 +15,13 @@
 
 #include "busy_wait_scale_factor.h"
 
+#if defined(__APPLE__)
+#include <time.h>
+#else
 #include <sys/time.h>
+#include <sys/resource.h>
+#endif
+
 #include <errno.h>
 
 

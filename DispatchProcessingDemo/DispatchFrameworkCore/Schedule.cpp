@@ -8,7 +8,7 @@
 
 #include <iostream>
 #include <dispatch/dispatch.h>
-#include <Block.h>
+
 #include <assert.h>
 
 #include "Schedule.h"

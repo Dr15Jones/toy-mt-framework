@@ -7,7 +7,7 @@
 //
 
 #include <iostream>
-#include <Block.h>
+
 #include <assert.h>
 #include "Path.h"
 #include "PathFilteringCallback.h"

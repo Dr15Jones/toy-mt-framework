@@ -8,7 +8,6 @@
 
 #include <iostream>
 #include <dispatch/dispatch.h>
-#include <Block.h>
 
 #include "Filter.h"
 #include "Event.h"

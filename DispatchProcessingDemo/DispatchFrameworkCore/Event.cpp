@@ -8,6 +8,7 @@
  */
 #include <assert.h>
 #include <iostream>
+#include <cstdio>
 
 #include "Event.h"
 #include "Producer.h"
