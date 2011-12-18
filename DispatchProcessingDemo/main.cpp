@@ -14,11 +14,9 @@
 #include "Filter.h"
 
 #include "busy_wait_scale_factor.h"
-
-#if defined(__APPLE__)
-#include <time.h>
-#else
 #include <sys/time.h>
+
+#if !defined(__APPLE__)
 #include <sys/resource.h>
 #endif
 
