@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <cassert>
+#include <memory>
 #include "Schedule.h"
 #include "Path.h"
 #include "Filter.h"
