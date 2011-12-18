@@ -18,11 +18,11 @@
 #include <boost/property_tree/json_parser.hpp>
 
 
-#import "Event.h"
-#import "Module.h"
+#include "Event.h"
+#include "Module.h"
 #include "Filter.h"
-#import "Producer.h"
-#import "Getter.h"
+#include "Producer.h"
+#include "Getter.h"
 #include "Source.h"
 #include "Path.h"
 #include "ErrorConditions.h"

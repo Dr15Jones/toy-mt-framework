@@ -11,7 +11,7 @@
 
 #include <string>
 #include <set>
-#import "Module.h"
+#include "Module.h"
 
 namespace demo {
   class Event;

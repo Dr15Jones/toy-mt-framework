@@ -9,9 +9,9 @@
 #include <iostream>
 #include <cassert>
 
-#import "Event.h"
-#import "Producer.h"
-#import "Getter.h"
+#include "Event.h"
+#include "Producer.h"
+#include "Getter.h"
 
 using namespace demo;
 typedef std::map<std::pair<std::string,std::string>, std::pair<Producer*,int> > LookupMap;

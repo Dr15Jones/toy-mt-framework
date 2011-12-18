@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-#import "Getter.h"
+#include "Getter.h"
 
 using namespace demo;
 
