@@ -1,14 +1,15 @@
 #Change this to point to your boost installation
-BOOST_INCLUDES := -I/Users/cdj/src/cms/software/FWLiteVersions/osx106_amd64_gcc461/external/boost/1.47.0-cms3/include
-#BOOST_INCLUDES := -I$(BOOST_INC)
-UNAME:=(shell uname -s)
+#BOOST_INCLUDES := -I/Users/cdj/src/cms/software/FWLiteVersions/osx106_amd64_gcc461/external/boost/1.47.0-cms3/include
+BOOST_INCLUDES := -I$(BOOST_INC)
+UNAME:=$(shell uname -s)
+#UNAME:=Linux
 DISPATCH_INCLUDES :=
 DISPATCH_LIB :=
 DISPATCH_LIB_PATH :=
 ifeq ($(UNAME), Linux)
 #change the following to to point to where you installed libdispatch and kqueue
-DISPATCH_INCLUDES :=-I/home/paterno/include
-DISPATCH_LIB_PATH :=-L/home/paterno/lib
+DISPATCH_INCLUDES := -I/home/paterno/include
+DISPATCH_LIB_PATH := -L/home/paterno/lib
 DISPATCH_LIB := $(DISPATCH_LIB_PATH) -ldispatch -lkqueue
 endif
 CXX=g++
