@@ -1,0 +1,34 @@
+digraph f
+{
+   rankdir=LR;
+   compound=true;
+   node [fontsize=14];
+   node [shape=box, style=filled, fillcolor=lightblue];
+   alg1; alg2; alg3; alg4;
+
+   node [shape=circle, style=filled, fillcolor=lightblue];
+   subgraph cluster_input { label="Input file"; W; Z; }
+   A; B; C; D; E; W; Z;
+
+   Z -> alg1;
+   alg1 -> D;
+   alg1 -> A;
+   D -> alg4;
+   A -> alg2;
+   A -> alg3;
+   alg2 -> E;
+   alg2 -> B;
+   alg3 -> C;
+   C -> alg4;
+   B -> alg4;
+   
+   subgraph cluster_output { label="Output file"; invis [style=invisible];}
+   W -> invis [lhead=cluster_output]
+   B -> invis [lhead=cluster_output]
+   C -> invis [lhead=cluster_output]
+   E -> invis [lhead=cluster_output]
+   
+   subgraph cluster_hist { label="Histogram file"; invis2 [style=invisible];}
+   alg4 -> invis2 [lhead=cluster_hist]
+}
+

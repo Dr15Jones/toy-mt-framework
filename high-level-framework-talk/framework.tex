@@ -22,7 +22,7 @@
   \vskip .5in
   \begin{tabular}{lr}
     { \large Marc Paterno} &   \\
-    { \large Christoper D. Jones } \\
+    { \large Christopher D. Jones } \\
     { \large 9 February 2012}       & \\
   \end{tabular}
 \end{frame}
@@ -42,7 +42,8 @@
   \begin{itemize}
     \item Our units of data processing, \emph{events}, are
           independent
-    \item Event data are organized hierarchically: run/subrun/event
+    \item Event data are organized hierarchically: run, subrun, event;
+          detector context (calibration, geometry)
     \item Different levels of hierarchy represent different \emph{intervals
           of validity}
     \item Events are collections of tagged arbitrary \emph{structured} data
@@ -51,7 +52,7 @@
       \item frameworks don't know about the many types
     \end{itemize}
     \item Objects put into the event become immutable
-    \item All events passing each of several possible physicist-defined
+    \item All events passing several possible physicist-defined
           \emph{filtering criteria} must be written to the same file
           (by the end of the job, they should be in the same file)
      \item Non-event \emph{summary data} (\textit{e.g.} histograms) are
@@ -99,10 +100,20 @@
       \item allow one instance of a module to be used simultaneously from
             multiple threads
     \end{itemize}
-    \item Physics frequently use libraries that are not thread-safe and that
+    \item Physicists frequently use libraries that are not thread-safe and that
           we do not control and can not (or will not) do without; we need
           to provide facilities and guidelines for their safe use
   \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{A very abstract processing diagram}
+  \begin{itemize}
+    \item Circles represent data products
+    \item Rectangles represent processing modules
+    \item Any or all data products may be written to an output file
+  \end{itemize}
+  \includegraphics[width=\textwidth]{flow}
 \end{frame}
 
 \end{document}
