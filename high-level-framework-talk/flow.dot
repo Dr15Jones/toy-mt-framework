@@ -7,7 +7,7 @@ digraph f
    alg1; alg2; alg3; alg4;
 
    node [shape=circle, style=filled, fillcolor=lightblue];
-   subgraph cluster_input { label="Input file"; W; Z; }
+   subgraph cluster_input { label="Input file"; W; Y; Z; }
    A; B; C; D; E; W; Z;
 
    Z -> alg1;
@@ -21,14 +21,15 @@ digraph f
    alg3 -> C;
    C -> alg4;
    B -> alg4;
-   
-   subgraph cluster_output { label="Output file"; invis [style=invisible];}
+   Y -> alg4;
+
+   subgraph cluster_output { label="Output file"; invis [style=invisible, group=a]; }
    W -> invis [lhead=cluster_output]
    B -> invis [lhead=cluster_output]
    C -> invis [lhead=cluster_output]
    E -> invis [lhead=cluster_output]
    
-   subgraph cluster_hist { label="Histogram file"; invis2 [style=invisible];}
+   subgraph cluster_hist { label="Histogram file"; invis2 [style=invisible, group=a]; }
    alg4 -> invis2 [lhead=cluster_hist]
 }
 

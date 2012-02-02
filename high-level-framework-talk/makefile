@@ -1,10 +1,10 @@
 all: framework.pdf
 
-framework.pdf: framework.tex flow.pdf
+framework.pdf: framework.tex flow.pdf makefile
 	latexmk --pdf framework
 
-flow.pdf: flow.dot
-	dot -Tpdf flow.dot > flow.pdf
+flow.pdf: flow.dot makefile
+	dot -Gconcentrate=true -Tpdf flow.dot > flow.pdf
 
 clean:
 	latexmk -c framework
