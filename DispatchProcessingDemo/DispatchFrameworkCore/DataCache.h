@@ -34,8 +34,11 @@ namespace demo {
       m_wasCached=false;
     }
     void setValue(int iValue) {
-      m_wasCached = true;
       m_value=iValue;
+      __sync_synchronize();
+      //Need to guarantee that m_wasCached is set only after m_value is set
+      // NOTE: under c++11 memory model that should be guaranteed
+      m_wasCached = true;
     }
     
     ProducerWrapper* producer() const {
@@ -47,7 +50,7 @@ namespace demo {
   private:
     mutable ProducerWrapper m_producer;
     int m_value;
-    bool m_wasCached;
+    volatile bool m_wasCached;
     
   };
 }
