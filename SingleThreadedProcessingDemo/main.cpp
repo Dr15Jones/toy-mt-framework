@@ -17,6 +17,10 @@
 #include <errno.h>
 #include <boost/property_tree/json_parser.hpp>
 
+#if !defined(__APPLE__)
+#include <sys/resource.h>
+#endif
+
 
 #include "Event.h"
 #include "Module.h"
