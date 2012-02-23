@@ -58,7 +58,7 @@ namespace demo {
     GroupHolder m_prefetchGroup;
     dispatch_queue_t m_prefetchQueue;
     dispatch_queue_t m_runQueue;
-    bool m_requestedPrefetch;
+    volatile bool m_requestedPrefetch;
 
   };
   
