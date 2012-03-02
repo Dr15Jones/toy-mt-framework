@@ -11,7 +11,6 @@
 
 #include <map>
 #include <string>
-#include <dispatch/dispatch.h>
 #include "Producer.h"
 
 namespace demo {
