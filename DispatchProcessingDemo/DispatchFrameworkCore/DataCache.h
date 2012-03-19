@@ -42,6 +42,8 @@ namespace demo {
       //Need to guarantee that m_wasCached is set only after m_value is set
       // NOTE: under c++11 memory model that should be guaranteed
       m_wasCached = true;
+      __sync_synchronize();
+      //must make sure this gets flushed
     }
     
     ProducerWrapper* producer() const {
