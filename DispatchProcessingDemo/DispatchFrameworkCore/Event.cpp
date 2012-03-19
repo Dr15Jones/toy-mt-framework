@@ -60,11 +60,13 @@ Event::get(const Getter* iGetter) const
   LookupMap::const_iterator it = m_lookupMap.find(std::make_pair(iGetter->label(),iGetter->product()));
 
   assert(it != m_lookupMap.end());
-  if(not it->second.wasCached()) {
+  auto& gotten = it->second;
+  bool wasCached = gotten.wasCached();
+  if(not wasCached) {
     std::cout << "Event::get called for missing item "<<iGetter->label()<<" "<<iGetter->product()<<std::endl;
   }
-  assert(it->second.wasCached());
-  return it->second.value();
+  assert(wasCached);
+  return gotten.value();
 }
 
 
