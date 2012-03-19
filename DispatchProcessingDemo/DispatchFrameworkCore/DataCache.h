@@ -28,6 +28,9 @@ namespace demo {
     m_wasCached(false) {}
     
     bool wasCached() const {
+      __sync_synchronize();
+      //Need to be sure the thread has the most up to date value
+      //NOTE: under c++11 memory model that should be guaranteed
       return m_wasCached;
     }
     void reset() {
@@ -50,6 +53,7 @@ namespace demo {
   private:
     mutable ProducerWrapper m_producer;
     int m_value;
+    //std::atomic<bool> m_wasCached;
     volatile bool m_wasCached;
     
   };
