@@ -111,6 +111,7 @@ ModuleWrapper::doPrefetch()
   // operations are atomic
   if (not m_requestedPrefetch) {
     m_requestedPrefetch = true;
+    __sync_synchronize(); //tell other threads we are prefetching
     module()->prefetchAsync(*m_event, m_prefetchGroup); 
   }  
 }
@@ -138,6 +139,7 @@ ModuleWrapper::prefetchAsync()
   // running module()->prefetchAsync(...) or that a thread has already finished module()->prefetchAsync
   // and all prefetchAsync has already acquired the dispatch_group_enter or all prefetches have finished
   
+  __sync_synchronize(); //make sure we have the most up to date value of m_requestedPrefetch
   if(module()->hasPrefetchItems() and (not m_requestedPrefetch)) {
     dispatch_group_async_f(m_prefetchGroup.get(),m_prefetchQueue,
                            static_cast<void*>(this),
