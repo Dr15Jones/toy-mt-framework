@@ -52,7 +52,7 @@ void Path::runFilterAsync(size_t iIndex) {
   
 void Path::reset_f(void* context, size_t iIndex) {
   Path* that = static_cast<Path*>(context);
-  that->m_filters[iIndex].reset();
+  //that->m_filters[iIndex].reset();
 }
 
 void Path::reset() {
