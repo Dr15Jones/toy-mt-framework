@@ -112,7 +112,13 @@ Schedule::reset_f(void* iContext, size_t iIndex){
 
 void 
 Schedule::reset() {
-  dispatch_apply_f(m_paths.size(), dispatch_get_global_queue(0, 0), this, &Schedule::reset_f);
+  for(auto fw: m_filters) {
+    fw->reset();
+  }
+  for(auto& p: m_paths) {
+    p.path->reset();
+  }
+  //dispatch_apply_f(m_paths.size(), dispatch_get_global_queue(0, 0), this, &Schedule::reset_f);
 }
 
 Event*
