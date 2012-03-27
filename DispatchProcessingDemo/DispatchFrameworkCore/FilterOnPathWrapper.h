@@ -22,7 +22,6 @@ namespace demo {
                         size_t iIndex);
     
     void filterAsync();
-    void reset();
     const std::string& label() const;
 
     FilterWrapper* filter() const;

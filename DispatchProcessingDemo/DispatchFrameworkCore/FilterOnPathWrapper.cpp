@@ -33,13 +33,6 @@ m_filter(iFilter),m_path(iPath),m_index(iIndex)
 {
 }
 
-
-void
-FilterOnPathWrapper::reset()
-{
-  m_filter->reset();
-}
-
 void
 FilterOnPathWrapper::doWork()
 {
