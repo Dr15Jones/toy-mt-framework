@@ -87,10 +87,6 @@ EventProcessor::get_and_process_one_event_f(void * context)
 
 void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
   m_schedules.reserve(iNumConcurrentEvents);
-  dispatch_group_async_f(m_eventLoopGroup, 
-                         dispatch_get_global_queue(0, 0),
-                         &m_schedules[0],
-                         &EventProcessor::get_and_process_one_event_f);
   for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
     Schedule* scheduleTemp = m_schedules[0].m_schedule->clone();
     m_schedules.push_back(LoopContext(scheduleTemp,this));
@@ -99,5 +95,12 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
                            &m_schedules.back(),
                            &EventProcessor::get_and_process_one_event_f);    
   }
+  //Do this after all others so that we are not calling 'Event->clone()' while the
+  // object is being accessed on another thread
+  dispatch_group_async_f(m_eventLoopGroup, 
+                         dispatch_get_global_queue(0, 0),
+                         &m_schedules[0],
+                         &EventProcessor::get_and_process_one_event_f);
+  
   dispatch_group_wait(m_eventLoopGroup, DISPATCH_TIME_FOREVER);
 }
