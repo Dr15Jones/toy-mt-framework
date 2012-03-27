@@ -56,7 +56,7 @@ void Path::reset_f(void* context, size_t iIndex) {
 }
 
 void Path::reset() {
-  dispatch_apply_f(m_filters.size(), dispatch_get_global_queue(0, 0), this, &Path::reset_f);
+  //dispatch_apply_f(m_filters.size(), dispatch_get_global_queue(0, 0), this, &Path::reset_f);
 }
   
 void Path::addFilter(FilterWrapper* iFilter,Event*iEvent) {
