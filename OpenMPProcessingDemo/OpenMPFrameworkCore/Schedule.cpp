@@ -51,9 +51,10 @@ Schedule::process() {
   if(!m_paths.empty()) {
     for(auto it = m_paths.begin(), itEnd = m_paths.end(); 
 	it != itEnd; ++it) {
-#pragma omp task default(shared)
-      assert(it->get());
-      processPresentPath(it->get());
+    auto temp = it->get();
+#pragma omp task default(shared) firstprivate(temp)
+      assert(temp);
+      processPresentPath(temp);
     }
 #pragma omp taskwait
     return not *m_fatalJobErrorOccuredPtr;
