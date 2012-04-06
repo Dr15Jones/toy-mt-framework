@@ -73,12 +73,13 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
     #pragma omp single
     {
       for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
-	boost::shared_ptr<Schedule> scheduleTemp{m_schedules[0]->clone()};
-	m_schedules.push_back(scheduleTemp);
-	#pragma omp task untied
-	{
-	  get_and_process_events(*(m_schedules.back()));
-	}
+        boost::shared_ptr<Schedule> scheduleTemp{m_schedules[0]->clone()};
+        m_schedules.push_back(scheduleTemp);
+        auto temp = scheduleTemp.get();
+	#pragma omp task untied privatefirst(temp)
+        {
+          get_and_process_events(*temp);
+        }
       }
       //Do this after all others so that we are not calling 'Event->clone()' while the
       // object is being accessed on another thread
