@@ -54,11 +54,16 @@ EventProcessor::get_and_process_events(Schedule& iSchedule)
   do {
     Source* source = m_source.get();
     iSchedule.event()->reset();
-  
-    if(shouldContinue = source->setEventInfo(*(iSchedule.event()))) {
+
+    {
+      OMPLockSentry sentry(&m_sourceLock);
+      shouldContinue = source->setEventInfo(*(iSchedule.event()));
+    }
+    if(shouldContinue) {
       shouldContinue=iSchedule.process();
     }
-  } while(shouldContinue && m_fatalJobErrorOccured);
+
+  } while(shouldContinue && not m_fatalJobErrorOccured);
 }
 
 void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
