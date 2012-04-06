@@ -76,7 +76,7 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
         boost::shared_ptr<Schedule> scheduleTemp{m_schedules[0]->clone()};
         m_schedules.push_back(scheduleTemp);
         auto temp = scheduleTemp.get();
-	#pragma omp task untied privatefirst(temp)
+	#pragma omp task untied firstprivate(temp)
         {
           get_and_process_events(*temp);
         }
