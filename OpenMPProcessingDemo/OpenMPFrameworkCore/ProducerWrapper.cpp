@@ -59,7 +59,7 @@ ProducerWrapper::doProduce(Event& iEvent)
   }
   prefetch(iEvent);
   if(!m_wasRun) {
-    OMPLockSentry(runLock());
+    OMPLockSentry sentry(runLock());
     if(!m_wasRun) {
     m_producer->doProduce(iEvent);
     //NOTE: needs a memory barrier to guarantee that
