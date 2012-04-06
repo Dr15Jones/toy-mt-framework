@@ -10,6 +10,7 @@
 #define DispatchProcessingDemo_Schedule_h
 #include <vector>
 #include <string>
+#include <atomic>
 #include <boost/shared_ptr.hpp>
 #include "Path.h"
 #include "Event.h"
@@ -36,7 +37,7 @@ namespace demo {
     
     FilterWrapper* findFilter(const std::string&);
     
-    void setFatalJobErrorOccurredPointer(bool* iPtr) {
+    void setFatalJobErrorOccurredPointer(std::atomic<bool>* iPtr) {
       m_fatalJobErrorOccuredPtr = iPtr;
     }
     
@@ -52,7 +53,7 @@ namespace demo {
     Event m_event;
     std::vector<boost::shared_ptr<Path>> m_paths;
     std::vector<boost::shared_ptr<FilterWrapper> > m_filters;
-    bool* m_fatalJobErrorOccuredPtr;
+    std::atomic<bool>* m_fatalJobErrorOccuredPtr;
   };
 }
 

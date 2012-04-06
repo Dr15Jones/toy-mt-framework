@@ -9,6 +9,7 @@
 #ifndef DispatchProcessingDemo_ProducerWrapper_h
 #define DispatchProcessingDemo_ProducerWrapper_h
 
+#include <atomic>
 #include <boost/shared_ptr.hpp>
 #include "ModuleWrapper.h"
 
@@ -32,7 +33,7 @@ namespace demo {
     ProducerWrapper& operator=(const ProducerWrapper&) = delete;
     
     boost::shared_ptr<Producer> m_producer;
-    bool m_wasRun;
+    std::atomic<bool> m_wasRun;
 
   };
 }

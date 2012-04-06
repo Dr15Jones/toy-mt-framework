@@ -9,6 +9,7 @@
 #ifndef DispatchProcessingDemo_EventProcessor_h
 #define DispatchProcessingDemo_EventProcessor_h
 #include <vector>
+#include <atomic>
 #include "Schedule.h"
 #include <boost/shared_ptr.hpp>
 
@@ -36,7 +37,7 @@ namespace demo {
     
     boost::shared_ptr<Source> m_source;
     std::vector<boost::shared_ptr<Schedule>> m_schedules;
-    bool m_fatalJobErrorOccured;    
+    std::atomic<bool> m_fatalJobErrorOccured;    
   };
 
 }

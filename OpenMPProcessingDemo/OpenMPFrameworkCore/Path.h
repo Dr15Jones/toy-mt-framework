@@ -9,6 +9,7 @@
 #ifndef DispatchProcessingDemo_Path_h
 #define DispatchProcessingDemo_Path_h
 #include <vector>
+#include <atomic>
 #include <boost/shared_ptr.hpp>
 
 
@@ -25,7 +26,7 @@ namespace demo {
     
     void reset();
     
-    void setFatalJobErrorOccurredPointer(bool* iPtr) {
+    void setFatalJobErrorOccurredPointer(std::atomic<bool>* iPtr) {
       m_fatalJobErrorOccurredPtr = iPtr;
     }
     
@@ -37,7 +38,7 @@ namespace demo {
     Path(const Path& iOther) = delete;
 
     std::vector<FilterWrapper*> m_filters;
-    bool* m_fatalJobErrorOccurredPtr;
+    std::atomic<bool>* m_fatalJobErrorOccurredPtr;
   };
   
 }
