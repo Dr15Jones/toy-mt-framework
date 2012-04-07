@@ -45,7 +45,7 @@ ModuleWrapper::ModuleWrapper(const ModuleWrapper& iOther):
   m_module(iOther.m_module),
   m_prefetchLock{},
   m_runLock{iOther.m_runLock},
-  m_donePrefetch(iOther.m_donePrefetch.value())
+  m_donePrefetch(static_cast<bool>(iOther.m_donePrefetch))
 {
 }
 
@@ -61,6 +61,7 @@ ModuleWrapper::prefetch(Event& iEvent)
     m_module->prefetch(iEvent);
     __sync_synchronize();
     m_donePrefetch=true;
+  }
 }
 
 
