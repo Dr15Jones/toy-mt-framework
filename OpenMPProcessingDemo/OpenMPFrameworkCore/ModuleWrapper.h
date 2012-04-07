@@ -9,6 +9,7 @@
 #ifndef OpenMPProcessingDemo_ModuleWrapper_h
 #define OpenMPProcessingDemo_ModuleWrapper_h
 
+#include <atomic>
 #include <boost/shared_ptr.hpp>
 #include "OMPLock.h"
 
@@ -29,6 +30,8 @@ namespace demo {
       return m_runLock.get();
     }
     
+    void reset() { m_donePrefetch=false; }
+    
     void prefetch(Event&);
     
    private:
@@ -37,6 +40,7 @@ namespace demo {
     Module* m_module;
     OMPLock m_prefetchLock;
     boost::shared_ptr<OMPLock> m_runLock;
+    std::atomic<bool> m_donePrefetch;
   };
   
 };

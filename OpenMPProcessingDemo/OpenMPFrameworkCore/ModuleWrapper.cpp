@@ -21,13 +21,15 @@ using namespace demo;
 ModuleWrapper::ModuleWrapper(Module* iModule):
   m_module(iModule),
   m_prefetchLock{},
-  m_runLock(m_module->threadType() != kThreadUnsafe? boost::shared_ptr<OMPLock>(new OMPLock{}) : s_thread_unsafe_lock)
+  m_runLock(m_module->threadType() != kThreadUnsafe? boost::shared_ptr<OMPLock>(new OMPLock{}) : s_thread_unsafe_lock),
+  m_donePrefetch(false)
 {
 }
 
 ModuleWrapper::ModuleWrapper(const ModuleWrapper* iOther):
   m_module(iOther->m_module),
-  m_prefetchLock{}
+  m_prefetchLock{},
+  m_donePrefetch(false)
 {
   if(m_module->threadType() == kThreadSafeBetweenInstances) {
     //the same instance can be called reentrantly so each Schedule can have
@@ -42,7 +44,8 @@ ModuleWrapper::ModuleWrapper(const ModuleWrapper* iOther):
 ModuleWrapper::ModuleWrapper(const ModuleWrapper& iOther):
   m_module(iOther.m_module),
   m_prefetchLock{},
-  m_runLock{iOther.m_runLock}
+  m_runLock{iOther.m_runLock},
+  m_donePrefetch(iOther.m_donePrefetch.value())
 {
 }
 
@@ -53,8 +56,11 @@ ModuleWrapper::~ModuleWrapper()
 void
 ModuleWrapper::prefetch(Event& iEvent)
 {
-  OMPLockSentry sentry(&m_prefetchLock);
-  m_module->prefetch(iEvent);
+  if(!m_donePrefetch) {
+    OMPLockSentry sentry(&m_prefetchLock);
+    m_module->prefetch(iEvent);
+    __sync_synchronize();
+    m_donePrefetch=true;
 }
 
 
