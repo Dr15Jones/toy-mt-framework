@@ -45,6 +45,7 @@ FilterWrapper::reset()
 {
   m_wasRun=false;
   m_keep=false;
+  ModuleWrapper::reset();
 }
 
 bool

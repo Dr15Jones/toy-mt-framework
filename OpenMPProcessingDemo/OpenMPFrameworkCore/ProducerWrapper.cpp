@@ -49,6 +49,7 @@ void
 ProducerWrapper::reset()
 {
   m_wasRun=false;
+  ModuleWrapper::reset();
 }
 
 void
