@@ -8,7 +8,9 @@
 
 #ifndef DispatchProcessingDemo_DataCache_h
 #define DispatchProcessingDemo_DataCache_h
+#if defined(PARALLEL_MODULES)  
 #include <atomic>
+#endif
 
 #include "ProducerWrapper.h"
 
@@ -36,9 +38,11 @@ namespace demo {
     }
     void setValue(int iValue) {
       m_value=iValue;
+#if defined(PARALLEL_MODULES)  
       __sync_synchronize();
       //Need to guarantee that m_wasCached is set only after m_value is set
       // NOTE: under c++11 memory model that should be guaranteed
+#endif
       m_wasCached = true;
       //must make sure this gets flushed
     }
@@ -52,8 +56,11 @@ namespace demo {
   private:
     mutable ProducerWrapper m_producer;
     int m_value;
+#if defined(PARALLEL_MODULES)  
     std::atomic<bool> m_wasCached;
-    
+#else
+    bool m_wasCached;
+#endif    
   };
 }
 

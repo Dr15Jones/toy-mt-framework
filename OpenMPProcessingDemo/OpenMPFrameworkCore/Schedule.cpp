@@ -52,11 +52,15 @@ Schedule::process() {
     for(auto it = m_paths.begin(), itEnd = m_paths.end(); 
 	it != itEnd; ++it) {
     auto temp = it->get();
+#if defined(PARALLEL_MODULES)
 #pragma omp task default(shared) firstprivate(temp)
-      assert(temp);
+    assert(temp);
+#endif
       processPresentPath(temp);
     }
+#if defined(PARALLEL_MODULES)
 #pragma omp taskwait
+#endif
     return not *m_fatalJobErrorOccuredPtr;
   } else {
     return true;

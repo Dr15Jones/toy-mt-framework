@@ -45,7 +45,9 @@ FilterWrapper::reset()
 {
   m_wasRun=false;
   m_keep=false;
+#if defined(PARALLEL_MODULES)  
   ModuleWrapper::reset();
+#endif
 }
 
 bool
@@ -53,16 +55,22 @@ FilterWrapper::doFilter(Event& iEvent)
 {
   if(!m_wasRun) {
     prefetch(iEvent);
+#if defined(PARALLEL_MODULES)  
     if(!m_wasRun) {
-      OMPLockSentry(runLock());
+      OMPLockSentry sentry(runLock());
       if(!m_wasRun) {
-	m_keep = filter()->doFilter(iEvent);
-	//NOTE: needs a memory barrier to guarantee that
-	// m_wasRun is never set until after doFilter is run
-	__sync_synchronize();
-	m_wasRun=true;
+        m_keep = filter()->doFilter(iEvent);
+        //NOTE: needs a memory barrier to guarantee that
+        // m_wasRun is never set until after doFilter is run
+        __sync_synchronize();
+        m_wasRun=true;
       }
     }
+#else
+    OMPLockSentry sentry(runLock());
+    m_keep = filter()->doFilter(iEvent);
+    m_wasRun=true;
+#endif
   }
   return m_keep;
 }

@@ -49,7 +49,9 @@ void
 ProducerWrapper::reset()
 {
   m_wasRun=false;
+#if defined(PARALLEL_MODULES)  
   ModuleWrapper::reset();
+#endif
 }
 
 void
@@ -59,14 +61,20 @@ ProducerWrapper::doProduce(Event& iEvent)
     return;
   }
   prefetch(iEvent);
+#if defined(PARALLEL_MODULES)  
   if(!m_wasRun) {
     OMPLockSentry sentry(runLock());
     if(!m_wasRun) {
-    m_producer->doProduce(iEvent);
-    //NOTE: needs a memory barrier to guarantee that
-    // m_wasRun is never set until after doFilter is run
-    __sync_synchronize();
-    this->m_wasRun = true;
+      m_producer->doProduce(iEvent);
+      //NOTE: needs a memory barrier to guarantee that
+      // m_wasRun is never set until after doFilter is run
+      __sync_synchronize();
+      this->m_wasRun = true;
     }
   }
+#else
+  OMPLockSentry sentry(runLock());
+  m_producer->doProduce(iEvent);
+  this->m_wasRun = true;  
+#endif
 }

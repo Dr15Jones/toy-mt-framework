@@ -9,7 +9,9 @@
 #ifndef OpenMPProcessingDemo_ModuleWrapper_h
 #define OpenMPProcessingDemo_ModuleWrapper_h
 
+#if defined(PARALLEL_MODULES)
 #include <atomic>
+#endif
 #include <boost/shared_ptr.hpp>
 #include "OMPLock.h"
 
@@ -30,7 +32,9 @@ namespace demo {
       return m_runLock.get();
     }
     
+#if defined(PARALLEL_MODULES)
     void reset() { m_donePrefetch=false; }
+#endif
     
     void prefetch(Event&);
     
@@ -38,9 +42,13 @@ namespace demo {
     ModuleWrapper& operator=(const ModuleWrapper&) = delete;
     
     Module* m_module;
+#if defined(PARALLEL_MODULES)
     OMPLock m_prefetchLock;
+#endif
     boost::shared_ptr<OMPLock> m_runLock;
+#if defined(PARALLEL_MODULES)
     std::atomic<bool> m_donePrefetch;
+#endif
   };
   
 };

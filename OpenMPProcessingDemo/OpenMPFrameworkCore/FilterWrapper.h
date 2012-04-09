@@ -10,7 +10,9 @@
 
 #ifndef OpenMPProcessingDemo_FilterWrapper_h
 #define OpenMPProcessingDemo_FilterWrapper_h
+#if defined(PARALLEL_MODULES)  
 #include <atomic>
+#endif
 #include <boost/shared_ptr.hpp>
 #include "ModuleWrapper.h"
 #include "Filter.h"
@@ -34,7 +36,11 @@ namespace demo {
     FilterWrapper(const FilterWrapper&) = delete;
     boost::shared_ptr<Filter> m_filter;
     bool m_keep;
-    std::atomic<bool> m_wasRun;    
+#if defined(PARALLEL_MODULES)  
+    std::atomic<bool> m_wasRun;
+#else
+    bool m_wasRun;
+#endif    
   };
 }
 

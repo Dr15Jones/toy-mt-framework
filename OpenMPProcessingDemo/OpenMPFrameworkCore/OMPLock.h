@@ -33,11 +33,27 @@ namespace demo {
   public:
     OMPLockSentry( OMPLock* iLock):
       m_lock(iLock)
-      { m_lock->set();}
+      {
+#if !defined(PARALLEL_MODULES)  
+        if(m_lock) {
+          m_lock->set();
+        }
+#else
+        m_lock->set();
+#endif
+      }
     OMPLockSentry( OMPLockSentry const&) = delete;
     OMPLockSentry& operator=( OMPLockSentry const&) = delete;
     ~OMPLockSentry() 
-      { m_lock->unset();}
+      { 
+#if !defined(PARALLEL_MODULES)  
+        if(m_lock) {
+          m_lock->unset();
+        }
+#else
+        m_lock->unset();
+#endif
+      }
   private:
     OMPLock* m_lock;
   };
