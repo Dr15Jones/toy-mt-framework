@@ -25,10 +25,14 @@ Module::prefetch(const Event& iEvent)
   for (std::list<Getter>::iterator it=m_getters.begin(),itEnd=m_getters.end();
        it!=itEnd; ++it) {
     Getter* temp = &(*it);
+#if defined(PARALLEL_MODULES)  
 #pragma omp task untied default(shared), firstprivate(temp)
+#endif
     iEvent.prefetch(temp);
   }
+#if defined(PARALLEL_MODULES)
   #pragma omp taskwait
+#endif
 }
 
 const Getter* 
