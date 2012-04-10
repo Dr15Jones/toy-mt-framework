@@ -104,9 +104,11 @@ ModuleWrapper::prefetch(Event& iEvent)
 #if defined(PARALLEL_MODULES)
   if(!m_donePrefetch) {
     OMPLockSentry sentry(&m_prefetchLock);
-    m_module->prefetch(iEvent);
-    __sync_synchronize();
-    m_donePrefetch=true;
+    if(!m_donePrefetch) {
+      m_module->prefetch(iEvent);
+      __sync_synchronize();
+      m_donePrefetch=true;
+    }
   }
 #else
   m_module->prefetch(iEvent);
