@@ -19,7 +19,11 @@
 using namespace demo;
 
 static
+#if defined(PARALLEL_MODULES)
 boost::shared_ptr<TaskYieldLock>
+#else
+boost::shared_ptr<OMLock>
+#endif
 chooseLock(unsigned int iType)
 {
 #if defined(PARALLEL_MODULES)
@@ -34,7 +38,7 @@ chooseLock(unsigned int iType)
     }
     case kThreadSafeBetweenModules:
     {
-      returnValue = boost::shared_ptr<TaskYieldLock>(new TaskYieldLock{});
+      returnValue = boost::shared_ptr<OMLock>(new TaskYieldLock{});
       break;
     }
     case kThreadSafeBetweenInstances:
@@ -103,12 +107,16 @@ ModuleWrapper::prefetch(Event& iEvent)
 {
 #if defined(PARALLEL_MODULES)
   if(!m_donePrefetch) {
-    TaskYieldLockSentry sentry(&m_prefetchLock);
-    if(!m_donePrefetch) {
-      m_module->prefetch(iEvent);
-      __sync_synchronize();
-      m_donePrefetch=true;
+#pragma omp task default(shared)
+    {
+      TaskYieldLockSentry sentry(&m_prefetchLock);
+      if(!m_donePrefetch) {
+        m_module->prefetch(iEvent);
+        __sync_synchronize();
+        m_donePrefetch=true;
+      }
     }
+#pragma omp taskwait
   }
 #else
   m_module->prefetch(iEvent);

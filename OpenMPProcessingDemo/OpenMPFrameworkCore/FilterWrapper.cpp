@@ -55,19 +55,23 @@ FilterWrapper::doFilter(Event& iEvent)
 {
   if(!m_wasRun) {
     prefetch(iEvent);
-#if defined(PARALLEL_MODULES)  
+#if defined(PARALLEL_MODULES)
     if(!m_wasRun) {
-      TaskYieldLockSentry sentry(runLock());
-      if(!m_wasRun) {
-        m_keep = filter()->doFilter(iEvent);
-        //NOTE: needs a memory barrier to guarantee that
-        // m_wasRun is never set until after doFilter is run
-        __sync_synchronize();
-        m_wasRun=true;
+#pragma omp task default(shared)
+      {
+        TaskYieldLockSentry sentry(runLock());
+        if(!m_wasRun) {
+          m_keep = filter()->doFilter(iEvent);
+          //NOTE: needs a memory barrier to guarantee that
+          // m_wasRun is never set until after doFilter is run
+          __sync_synchronize();
+          m_wasRun=true;
+        }
       }
+#pragma omp taskwait
     }
 #else
-    TaskYieldLockSentry sentry(runLock());
+    OMPLockSentry sentry(runLock());
     m_keep = filter()->doFilter(iEvent);
     m_wasRun=true;
 #endif

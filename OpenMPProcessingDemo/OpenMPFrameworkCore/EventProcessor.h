@@ -37,7 +37,11 @@ namespace demo {
     void get_and_process_events(Schedule&);
     
     boost::shared_ptr<Source> m_source;
+#if defined(PARALLEL_MODULES)
     TaskYieldLock m_sourceLock;
+#else
+    OMPLock m_sourceLock;
+#endif
     std::vector<boost::shared_ptr<Schedule>> m_schedules;
     std::atomic<bool> m_fatalJobErrorOccured;    
   };

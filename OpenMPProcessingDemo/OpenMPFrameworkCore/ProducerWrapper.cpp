@@ -61,19 +61,23 @@ ProducerWrapper::doProduce(Event& iEvent)
     return;
   }
   prefetch(iEvent);
-#if defined(PARALLEL_MODULES)  
+#if defined(PARALLEL_MODULES)
   if(!m_wasRun) {
-    TaskYieldLockSentry sentry(runLock());
-    if(!m_wasRun) {
-      m_producer->doProduce(iEvent);
-      //NOTE: needs a memory barrier to guarantee that
-      // m_wasRun is never set until after doFilter is run
-      __sync_synchronize();
-      this->m_wasRun = true;
+#pragma omp task default(shared)  
+    {
+      TaskYieldLockSentry sentry(runLock());
+      if(!m_wasRun) {
+        m_producer->doProduce(iEvent);
+        //NOTE: needs a memory barrier to guarantee that
+        // m_wasRun is never set until after doFilter is run
+        __sync_synchronize();
+        this->m_wasRun = true;
+      }
     }
+#pragma omp taskwait
   }
 #else
-  TaskYieldLockSentry sentry(runLock());
+  OMPLockSentry sentry(runLock());
   m_producer->doProduce(iEvent);
   this->m_wasRun = true;  
 #endif
