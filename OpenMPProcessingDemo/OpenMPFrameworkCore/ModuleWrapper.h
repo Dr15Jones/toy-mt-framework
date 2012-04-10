@@ -13,7 +13,7 @@
 #include <atomic>
 #endif
 #include <boost/shared_ptr.hpp>
-#include "OMPLock.h"
+#include "TaskYieldLock.h"
 
 namespace demo {
   class Module;
@@ -28,7 +28,7 @@ namespace demo {
     ModuleWrapper(const ModuleWrapper*);
     ModuleWrapper(const ModuleWrapper&);
     
-    OMPLock* runLock() {
+    TaskYieldLock* runLock() {
       return m_runLock.get();
     }
     
@@ -43,9 +43,9 @@ namespace demo {
     
     Module* m_module;
 #if defined(PARALLEL_MODULES)
-    OMPLock m_prefetchLock;
+    TaskYieldLock m_prefetchLock;
 #endif
-    boost::shared_ptr<OMPLock> m_runLock;
+    boost::shared_ptr<TaskYieldLock> m_runLock;
 #if defined(PARALLEL_MODULES)
     std::atomic<bool> m_donePrefetch;
 #endif

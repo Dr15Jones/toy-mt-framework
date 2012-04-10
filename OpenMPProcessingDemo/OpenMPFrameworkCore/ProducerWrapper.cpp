@@ -63,7 +63,7 @@ ProducerWrapper::doProduce(Event& iEvent)
   prefetch(iEvent);
 #if defined(PARALLEL_MODULES)  
   if(!m_wasRun) {
-    OMPLockSentry sentry(runLock());
+    TaskYieldLockSentry sentry(runLock());
     if(!m_wasRun) {
       m_producer->doProduce(iEvent);
       //NOTE: needs a memory barrier to guarantee that
@@ -73,7 +73,7 @@ ProducerWrapper::doProduce(Event& iEvent)
     }
   }
 #else
-  OMPLockSentry sentry(runLock());
+  TaskYieldLockSentry sentry(runLock());
   m_producer->doProduce(iEvent);
   this->m_wasRun = true;  
 #endif

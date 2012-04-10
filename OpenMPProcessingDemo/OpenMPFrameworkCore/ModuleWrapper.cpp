@@ -19,11 +19,11 @@
 using namespace demo;
 
 static
-boost::shared_ptr<OMPLock>
+boost::shared_ptr<TaskYieldLock>
 chooseLock(unsigned int iType)
 {
 #if defined(PARALLEL_MODULES)
-  return iType != kThreadUnsafe? boost::shared_ptr<OMPLock>(new OMPLock{}) : s_thread_unsafe_lock;
+  return iType != kThreadUnsafe? boost::shared_ptr<TaskYieldLock>(new TaskYieldLock{}) : s_thread_unsafe_lock;
 #else
   boost::shared_ptr<OMPLock> returnValue;
   switch(iType) {
@@ -34,7 +34,7 @@ chooseLock(unsigned int iType)
     }
     case kThreadSafeBetweenModules:
     {
-      returnValue = boost::shared_ptr<OMPLock>(new OMPLock{});
+      returnValue = boost::shared_ptr<TaskYieldLock>(new TaskYieldLock{});
       break;
     }
     case kThreadSafeBetweenInstances:
@@ -74,7 +74,7 @@ ModuleWrapper::ModuleWrapper(const ModuleWrapper* iOther):
   if(m_module->threadType() == kThreadSafeBetweenInstances) {
     //the same instance can be called reentrantly so each Schedule can have
     // its own lock for each instance rather than having to share one lock
-    m_runLock = boost::shared_ptr<OMPLock>(new OMPLock{});
+    m_runLock = boost::shared_ptr<TaskYieldLock>(new TaskYieldLock{});
   } else {
     m_runLock = iOther->m_runLock;
   }
@@ -103,7 +103,7 @@ ModuleWrapper::prefetch(Event& iEvent)
 {
 #if defined(PARALLEL_MODULES)
   if(!m_donePrefetch) {
-    OMPLockSentry sentry(&m_prefetchLock);
+    TaskYieldLockSentry sentry(&m_prefetchLock);
     if(!m_donePrefetch) {
       m_module->prefetch(iEvent);
       __sync_synchronize();

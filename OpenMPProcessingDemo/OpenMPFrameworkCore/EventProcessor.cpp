@@ -56,7 +56,7 @@ EventProcessor::get_and_process_events(Schedule& iSchedule)
     iSchedule.event()->reset();
 
     {
-      OMPLockSentry sentry(&m_sourceLock);
+      TaskYieldLockSentry sentry(&m_sourceLock);
       shouldContinue = source->setEventInfo(*(iSchedule.event()));
     }
     if(shouldContinue) {
