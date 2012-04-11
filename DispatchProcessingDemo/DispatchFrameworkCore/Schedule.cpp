@@ -47,7 +47,7 @@ m_fatalJobErrorOccuredPtr(iOther.m_fatalJobErrorOccuredPtr)
     m_filters.push_back(boost::shared_ptr<FilterWrapper>(new FilterWrapper(*fw,&m_event)));
   }
   
-  
+  m_paths.reserve(iOther.m_paths.size());
   for(std::vector<PathContext>::const_iterator it = iOther.m_paths.begin(), itEnd = iOther.m_paths.end();
       it != itEnd;
       ++it) {
