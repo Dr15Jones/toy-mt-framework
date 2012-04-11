@@ -12,7 +12,6 @@
 
 #include "ModuleWrapper.h"
 #include "Module.h"
-#include "Queues.h"
 #include "Event.h"
 #include "Locks.h"
 

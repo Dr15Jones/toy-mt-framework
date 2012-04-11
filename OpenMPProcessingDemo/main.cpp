@@ -5,7 +5,6 @@
 #include <sstream>
 #include "omp.h"
 
-#include "Queues.h"
 #include "EventProcessor.h"
 
 #include "SimpleSource.h"
