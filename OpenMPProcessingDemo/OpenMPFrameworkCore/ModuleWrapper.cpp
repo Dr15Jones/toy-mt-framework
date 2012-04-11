@@ -106,16 +106,12 @@ ModuleWrapper::prefetch(Event& iEvent)
 {
 #if defined(PARALLEL_MODULES)
   if(!m_donePrefetch) {
-#pragma omp task default(shared)
-    {
-      TaskYieldLockSentry sentry(&m_prefetchLock);
-      if(!m_donePrefetch) {
-        m_module->prefetch(iEvent);
-        __sync_synchronize();
-        m_donePrefetch=true;
-      }
+    TaskYieldLockSentry sentry(&m_prefetchLock);
+    if(!m_donePrefetch) {
+      m_module->prefetch(iEvent);
+      __sync_synchronize();
+      m_donePrefetch=true;
     }
-#pragma omp taskwait
   }
 #else
   m_module->prefetch(iEvent);

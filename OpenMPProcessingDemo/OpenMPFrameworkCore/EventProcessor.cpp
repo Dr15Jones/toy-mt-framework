@@ -58,18 +58,11 @@ EventProcessor::get_and_process_events(Schedule& iSchedule)
     {
       
 #if defined(PARALLEL_MODULES)
-#pragma omp task default(shared)
-      {
       TaskYieldLockSentry sentry(&m_sourceLock);
 #else
       OMPLockSentry sentry(&m_sourceLock);
 #endif
       shouldContinue = source->setEventInfo(*(iSchedule.event()));
-#if defined(PARALLEL_MODULES)
-      }
-#pragma omp taskwait
-#endif
-      
     }
     if(shouldContinue) {
       shouldContinue=iSchedule.process();
