@@ -38,9 +38,8 @@ ModuleWrapper::ModuleWrapper(Module* iModule, Event* iEvent):
 m_module(iModule),
 m_event(iEvent),
 m_prefetchGroup(dispatch_group_create()),
-m_prefetchQueue(dispatch_queue_create(unique_name(kPrefix+iModule->label()).c_str(), NULL)),
 m_runQueue(dispatch_queue_create(unique_name(kRunPrefix+iModule->label()).c_str(), NULL)),
-m_requestedPrefetch(false)
+m_requestedPrefetch{ATOMIC_FLAG_INIT}
 {
 }
 
@@ -49,8 +48,7 @@ ModuleWrapper::ModuleWrapper(const ModuleWrapper& iOther,
 m_module(iOther.m_module),
 m_event(iEvent),
 m_prefetchGroup(dispatch_group_create()),
-m_prefetchQueue(dispatch_queue_create(unique_name(kPrefix+iOther.m_module->label()).c_str(), NULL)),
-m_requestedPrefetch(false)
+m_requestedPrefetch{ATOMIC_FLAG_INIT}
 {
   if(m_module->threadType() == kThreadSafeBetweenInstances) {
     //the same instance can be called reentrantly so each Schedule can have
@@ -66,11 +64,9 @@ ModuleWrapper::ModuleWrapper(const ModuleWrapper& iOther):
 m_module(iOther.m_module),
 m_event(iOther.m_event),
 m_prefetchGroup(iOther.m_prefetchGroup),
-m_prefetchQueue(iOther.m_prefetchQueue),
 m_runQueue(iOther.m_runQueue),
-m_requestedPrefetch(iOther.m_requestedPrefetch)
+m_requestedPrefetch{ATOMIC_FLAG_INIT}
 {
-  dispatch_retain(m_prefetchQueue);
   dispatch_retain(m_runQueue);
 }
 
@@ -80,20 +76,18 @@ ModuleWrapper::operator=(const ModuleWrapper& iOther)
   if(&iOther!=this) {
     m_module =iOther.m_module;
     m_event = iOther.m_event;
-    dispatch_release(m_prefetchQueue);
     m_prefetchGroup = iOther.m_prefetchGroup;
-    dispatch_retain(m_prefetchQueue);
     dispatch_release(m_runQueue);
     m_runQueue=iOther.m_runQueue;
     dispatch_retain(m_runQueue);
-    m_requestedPrefetch = iOther.m_requestedPrefetch;  
+    //leave it the way it was
+    //m_requestedPrefetch = iOther.m_requestedPrefetch;  
   }
   return *this;
 }
 
 ModuleWrapper::~ModuleWrapper()
 {
-  dispatch_release(m_prefetchQueue);
   dispatch_release(m_runQueue);
 }
 
@@ -107,13 +101,7 @@ ModuleWrapper::do_prefetch_task(void* iContext)
 void
 ModuleWrapper::doPrefetch()
 {
-  //This routine is only called from within a queue so its
-  // operations are atomic
-  if (not m_requestedPrefetch) {
-    m_requestedPrefetch = true;
-    __sync_synchronize(); //tell other threads we are prefetching
     module()->prefetchAsync(*m_event, m_prefetchGroup); 
-  }  
 }
 
 void 
@@ -138,11 +126,10 @@ ModuleWrapper::prefetchAsync()
   // we'd know that another thread must either still have an outstanding dispatch_group_enter and is
   // running module()->prefetchAsync(...) or that a thread has already finished module()->prefetchAsync
   // and all prefetchAsync has already acquired the dispatch_group_enter or all prefetches have finished
-  
-  __sync_synchronize(); //make sure we have the most up to date value of m_requestedPrefetch
-  if(module()->hasPrefetchItems() and (not m_requestedPrefetch)) {
-    dispatch_group_async_f(m_prefetchGroup.get(),m_prefetchQueue,
-                           static_cast<void*>(this),
-                           ModuleWrapper::do_prefetch_task);
+
+  dispatch_group_enter(m_prefetchGroup.get());
+  if(module()->hasPrefetchItems() and (not m_requestedPrefetch.test_and_set())) {
+    module()->prefetchAsync(*m_event, m_prefetchGroup); 
   }
+  dispatch_group_leave(m_prefetchGroup.get());
 }

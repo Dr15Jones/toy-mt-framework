@@ -11,7 +11,7 @@
 #include <vector>
 #include <atomic>
 #include "Schedule.h"
-#include "TaskYieldLock.h"
+#include "OMPLock.h"
 #include <boost/shared_ptr.hpp>
 
 namespace demo {
@@ -38,7 +38,7 @@ namespace demo {
     
     boost::shared_ptr<Source> m_source;
 #if defined(PARALLEL_MODULES)
-    TaskYieldLock m_sourceLock;
+    OMPLock m_sourceLock;
 #else
     OMPLock m_sourceLock;
 #endif

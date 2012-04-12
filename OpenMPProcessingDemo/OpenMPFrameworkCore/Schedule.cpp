@@ -53,7 +53,7 @@ Schedule::process() {
 	it != itEnd; ++it) {
     auto temp = it->get();
 #if defined(PARALLEL_MODULES)
-#pragma omp task default(shared) firstprivate(temp)
+#pragma omp task untied default(shared) firstprivate(temp)
     assert(temp);
 #endif
       processPresentPath(temp);
