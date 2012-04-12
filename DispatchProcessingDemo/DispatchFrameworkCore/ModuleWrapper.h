@@ -9,6 +9,7 @@
 #ifndef DispatchProcessingDemo_ModuleWrapper_h
 #define DispatchProcessingDemo_ModuleWrapper_h
 #include <dispatch/dispatch.h>
+#include <atomic>
 #include "GroupHolder.h"
 
 namespace demo {
@@ -30,7 +31,7 @@ namespace demo {
     }
     
     void reset() {
-      m_requestedPrefetch=false;
+      m_requestedPrefetch.clear();
     }
 
     void prefetchAsync();
@@ -56,9 +57,8 @@ namespace demo {
     Module* m_module;
     Event* m_event;
     GroupHolder m_prefetchGroup;
-    dispatch_queue_t m_prefetchQueue;
     dispatch_queue_t m_runQueue;
-    volatile bool m_requestedPrefetch;
+    std::atomic_flag m_requestedPrefetch;
 
   };
   
