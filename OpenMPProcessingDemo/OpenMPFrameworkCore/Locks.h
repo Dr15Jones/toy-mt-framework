@@ -12,14 +12,14 @@
 #define OpenMPProcessingDemo_Locks_h
 #include <boost/shared_ptr.hpp>
 #if defined(PARALLEL_MODULES)
-#include "TaskYieldLock.h"
+#include "OMPLock.h"
 #else
 #include "OMPLock.h"
 #endif
 
 namespace demo {
 #if defined(PARALLEL_MODULES)
-  extern boost::shared_ptr<TaskYieldLock> s_thread_unsafe_lock;
+  extern boost::shared_ptr<OMPLock> s_thread_unsafe_lock;
 #else
   extern boost::shared_ptr<OMPLock> s_thread_unsafe_lock;
 #endif

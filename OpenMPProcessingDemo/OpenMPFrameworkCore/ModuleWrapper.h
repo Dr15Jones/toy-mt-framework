@@ -14,7 +14,7 @@
 #endif
 #include <boost/shared_ptr.hpp>
 #if defined(PARALLEL_MODULES)
-#include "TaskYieldLock.h"
+#include "OMPLock.h"
 #else
 #include "OMPLock.h"
 #endif
@@ -33,7 +33,7 @@ namespace demo {
     ModuleWrapper(const ModuleWrapper&);
     
 #if defined(PARALLEL_MODULES)
-    TaskYieldLock* runLock() {
+    OMPLock* runLock() {
 #else
     OMPLock* runLock() {
 #endif
@@ -51,8 +51,8 @@ namespace demo {
     
     Module* m_module;
 #if defined(PARALLEL_MODULES)
-    TaskYieldLock m_prefetchLock;
-    boost::shared_ptr<TaskYieldLock> m_runLock;
+    OMPLock m_prefetchLock;
+    boost::shared_ptr<OMPLock> m_runLock;
     std::atomic<bool> m_donePrefetch;
 #else
     boost::shared_ptr<OMPLock> m_runLock;

@@ -118,7 +118,7 @@ Event::clone() {
 namespace {
   class ReleaseAndReaquireLock {
   public:
-    ReleaseAndReaquireLock(TaskYieldLock* iLock) :
+    ReleaseAndReaquireLock(OMPLock* iLock) :
       m_lock(iLock) 
     {
       if(m_lock) { m_lock->unset();}
@@ -131,7 +131,7 @@ namespace {
       if(m_lock) { m_lock->set();}
     }
   private:
-    TaskYieldLock* m_lock;
+    OMPLock* m_lock;
   };
 }
 

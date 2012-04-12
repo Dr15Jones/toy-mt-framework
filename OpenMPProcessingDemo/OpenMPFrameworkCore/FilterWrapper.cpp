@@ -57,7 +57,7 @@ FilterWrapper::doFilter(Event& iEvent)
     prefetch(iEvent);
 #if defined(PARALLEL_MODULES)
     if(!m_wasRun) {
-      TaskYieldLockSentry sentry(runLock());
+      OMPLockSentry sentry(runLock());
       if(!m_wasRun) {
 	m_keep = filter()->doFilter(iEvent);
 	//NOTE: needs a memory barrier to guarantee that

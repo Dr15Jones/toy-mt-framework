@@ -58,7 +58,7 @@ EventProcessor::get_and_process_events(Schedule& iSchedule)
     {
       
 #if defined(PARALLEL_MODULES)
-      TaskYieldLockSentry sentry(&m_sourceLock);
+      OMPLockSentry sentry(&m_sourceLock);
 #else
       OMPLockSentry sentry(&m_sourceLock);
 #endif
