@@ -87,7 +87,10 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
       }
       //Do this after all others so that we are not calling 'Event->clone()' while the
       // object is being accessed on another thread
-      get_and_process_events(*(m_schedules[0]));
+      #pragma omp task untied 
+      {
+	get_and_process_events(*(m_schedules[0]));
+      }
     }
   }
 }
