@@ -54,11 +54,13 @@ Schedule::process() {
     auto temp = it->get();
 #if defined(PARALLEL_MODULES)
 #pragma omp task untied default(shared) firstprivate(temp)
+    {
     assert(temp);
 #endif
       processPresentPath(temp);
     }
 #if defined(PARALLEL_MODULES)
+    }
 #pragma omp taskwait
 #endif
     return not *m_fatalJobErrorOccuredPtr;
