@@ -86,6 +86,10 @@ ProducerWrapper::doProduceAsync()
     return m_group;
   }
   
+  //NOTE: review this. I think we could just call 'doProduceAsyncImpl
+  // directly since 'doPrefetchAndWork' does all of its activities asynchronously
+  // anyway 
+  
   //need to call group_async so that we 'enter' the group before returning
   // our value
   dispatch_group_async_f(m_group.get(),s_thread_safe_queue ,
