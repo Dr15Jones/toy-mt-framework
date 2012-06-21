@@ -10,7 +10,6 @@
 #define DispatchProcessingDemo_ProducerWrapper_h
 
 #include <boost/shared_ptr.hpp>
-#include <dispatch/dispatch.h>
 #include "ModuleWrapper.h"
 #include "PrefetchAndWorkWrapper.h"
 #include "WaitingList.h"

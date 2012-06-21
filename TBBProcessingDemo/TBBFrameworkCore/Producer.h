@@ -12,7 +12,6 @@
 
 #include <string>
 #include <set>
-#include <dispatch/dispatch.h>
 #include "Module.h"
 
 namespace demo {
