@@ -1,0 +1,53 @@
+{
+ "process" :
+ {
+   "label" : "TEST",
+   "options" :
+   {
+     "nSimultaneousEvents" : 4,
+     "busyWaitScaleFactor" : 2.2e+07
+   },
+   "source" :
+   {
+     "@type" : "demo::SimpleSource",
+     "iterations" : 3000
+   },
+   "filters" :
+   [
+     { "@label" : "first",
+       "@type" : "demo::PassFilter" },
+     { "@label" : "second",
+       "@type" : "demo::PassFilter" },
+     { "@label" : "third",
+       "@type" : "demo::PassFilter" },
+     { "@label" : "fourth",
+       "@type" : "demo::ThreadSaferGetterFilter",
+       "toGet" :
+       [
+         {"label":"alpha","product":""},
+         {"label":"beta","product":""}
+       ]
+     }
+   ],
+   "producers" :
+   [
+     { "@label" : "alpha",
+       "@type" : "demo::BusyWaitProducer",
+       "threadType" : "ThreadSafeBetweenInstances",
+       "averageTime":0.01,
+       "toGet" :[]
+     },
+     { "@label" : "beta",
+       "@type" : "demo::BusyWaitProducer", 
+       "threadType" : "ThreadSafeBetweenInstances",
+       "averageTime" : 0.02,
+       "toGet" : []
+     }
+   ],
+   "paths" :
+   {
+     "p":
+      [ "first","second","third","fourth"]
+   }
+ }
+}
