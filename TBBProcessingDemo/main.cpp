@@ -3,6 +3,7 @@
 #include <cmath>
 #include <boost/property_tree/json_parser.hpp>
 #include <sstream>
+#include "tbb/task_scheduler_init.h"
 
 #include "Queues.h"
 #include "EventProcessor.h"
@@ -38,9 +39,10 @@ int main (int argc, char * const argv[]) {
     std::cout <<iE.what()<<std::endl;
     exit(1);
   }
-  //const size_t iterations= 3000;
+  const unsigned int nThreads = pConfig.get<unsigned int>("process.options.nThreads",tbb::task_scheduler_init::default_num_threads());
+  tbb::task_scheduler_init tsi(nThreads);
+  
   const size_t iterations = pConfig.get<size_t>("process.source.iterations");
-  //const size_t iterations= 2;
   demo::EventProcessor ep;
   ep.setSource(new demo::SimpleSource( iterations) );
   
@@ -116,7 +118,7 @@ int main (int argc, char * const argv[]) {
     microsecToSec * (theUsage.ru_stime.tv_usec + theUsage.ru_utime.tv_usec - startCPUTime.tv_usec);
    
     double realTime = tp.tv_sec - startRealTime.tv_sec + microsecToSec * (tp.tv_usec - startRealTime.tv_usec);
-    std::cout <<"# simultaneous events:"<<nEvents<<" total # events:"<<iterations<<" cpu time:" << cpuTime<<" real time:"<<realTime<<" events/sec:"<<iterations/realTime<<std::endl;
+    std::cout <<"# threads:"<<nThreads<<" # simultaneous events:"<<nEvents<<" total # events:"<<iterations<<" cpu time:" << cpuTime<<" real time:"<<realTime<<" events/sec:"<<iterations/realTime<<std::endl;
 
   }
 
