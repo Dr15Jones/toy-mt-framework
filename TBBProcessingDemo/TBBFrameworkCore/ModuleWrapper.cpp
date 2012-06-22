@@ -95,11 +95,19 @@ ModuleWrapper::prefetchAsync(tbb::task* iPrefetchDoneTask)
   
   if(module()->hasPrefetchItems() and (not m_requestedPrefetch.test_and_set())) {
     module()->prefetchAsync(*m_event, iPrefetchDoneTask); 
+    if(0==iPrefetchDoneTask->decrement_ref_count()) {
+       //if everything finishes before we leave this routine, we need to launch the task
+       tbb::task::spawn(*iPrefetchDoneTask);
+    } 
+  } else if(module()->hasPrefetchItems()) {
+     //we already have one prefetch task running and the done task is identical 
+     // so it can be gotten rid of
+     tbb::task::destroy(*iPrefetchDoneTask);
   } else {
+     if(0==iPrefetchDoneTask->decrement_ref_count()) {
+        //if everything finishes before we leave this routine, we need to launch the task
+        tbb::task::spawn(*iPrefetchDoneTask);
+     } 
   }
   //dispatch_group_leave(m_prefetchGroup.get());
-  if(0==iPrefetchDoneTask->decrement_ref_count()) {
-     //if everything finishes before we leave this routine, we need to launch the task
-     tbb::task::spawn(*iPrefetchDoneTask);
-  }
 }
