@@ -22,9 +22,9 @@ Module::~Module()
 void
 Module::prefetchAsync(const Event& iEvent, tbb::task* iTask)
 {
-   assert(0!=iTask);
-   //need to be sure that ref count isn't set to 0 immediately
-   iTask->increment_ref_count();
+  assert(0!=iTask);
+  //need to be sure that ref count isn't set to 0 immediately
+  iTask->increment_ref_count();
   for (std::list<Getter>::iterator it=m_getters.begin(),itEnd=m_getters.end();
        it!=itEnd; ++it) {
     iEvent.getAsync(&(*it),iTask);
