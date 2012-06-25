@@ -29,55 +29,13 @@ PrefetchAndWorkWrapper::module_() const {
   return m_wrapper->module();
 }
 
-/*
-void 
-PrefetchAndWorkWrapper::do_work_task(void* iContext)
-{
-  PrefetchAndWorkWrapper* wrapper = reinterpret_cast<PrefetchAndWorkWrapper*>(iContext);
-  wrapper->doWork();
+inline
+SerialTaskQueue*
+PrefetchAndWorkWrapper::runQueue() const {
+  return m_wrapper->runQueue();
 }
 
-void 
-PrefetchAndWorkWrapper::do_work_and_resume_queues_task(void* iContext)
-{
-  PrefetchAndWorkWrapper* wrapper = reinterpret_cast<PrefetchAndWorkWrapper*>(iContext);
-  wrapper->doWork();
-  //now that our work is done, we allow other instances use the queues
-  s_non_thread_safe_queue.resume();
-  wrapper->m_wrapper->runQueue().resume();
-}
 
-void 
-PrefetchAndWorkWrapper::do_suspend_thread_unsafe_queue_before_work_task(void* iContext)
-{
-  //This is running in the s_non_thread_safe_queue so we know this
-  // instances is the one that has the 'lock'.
-  PrefetchAndWorkWrapper* wrapper = reinterpret_cast<PrefetchAndWorkWrapper*>(iContext);
-  s_non_thread_safe_queue.pause();
-  s_thread_safe_queue.add([]{
-     wrapper->doWork();
-     //now that our work is done, we allow other instances use the queues
-     s_non_thread_safe_queue.resume();
-     wrapper->m_wrapper->runQueue().resume();     
-  });
-  
-  //dispatch_async_f(s_thread_safe_queue, iContext,
-  //                 PrefetchAndWorkWrapper::do_work_and_resume_queues_task);
-}
-
-void 
-PrefetchAndWorkWrapper::do_suspend_run_queue_before_work_task(void* iContext)
-{
-  //This is running in the m_runQueue so we know this instance is
-  // the one that has the 'lock'.
-  PrefetchAndWorkWrapper* wrapper = reinterpret_cast<PrefetchAndWorkWrapper*>(iContext);
-  dispatch_suspend(wrapper->m_wrapper->runQueue());
-  dispatch_async_f(s_non_thread_safe_queue, 
-                   iContext,
-                   PrefetchAndWorkWrapper::do_suspend_thread_unsafe_queue_before_work_task);
-
-}
-*/
 namespace demo {
    namespace pnw {
       class DoWorkTask : public tbb::task {
@@ -87,7 +45,7 @@ namespace demo {
       
          tbb::task* execute() {
             auto wrapper = this->m_wrapper;
-            m_wrapper->m_wrapper->runQueue()->push([wrapper]{
+            wrapper->runQueue()->push([wrapper]{
                wrapper->doWork();
                });
             return nullptr;
@@ -103,10 +61,10 @@ namespace demo {
       
          tbb::task* execute() {
             auto wrapper = m_wrapper;
-            m_wrapper->m_wrapper->runQueue()->push([wrapper]{
+            wrapper->runQueue()->push([wrapper]{
                //This is running in the m_runQueue so we know this instance is
                // the one that has the 'lock'.
-               wrapper->m_wrapper->runQueue()->pause();
+               wrapper->runQueue()->pause();
             
                s_non_thread_safe_queue->push([wrapper]{
                   s_non_thread_safe_queue->pause();
@@ -117,7 +75,7 @@ namespace demo {
                      wrapper->doWork();
                      //now that our work is done, we allow other instances use the queues
                      s_non_thread_safe_queue->resume();
-                     wrapper->m_wrapper->runQueue()->resume();     
+                     wrapper->runQueue()->resume();     
                   });
                });
             });
@@ -134,12 +92,6 @@ PrefetchAndWorkWrapper::doPrefetchAndWork()
   //when everything has been gotten, do our work
   if(module_()->threadType()!=kThreadUnsafe) {
      m_wrapper->prefetchAsync( new (tbb::task::allocate_root()) pnw::DoWorkTask(this));
-     
-     
-/*    dispatch_group_notify_f(m_wrapper->prefetchGroup(),
-                            m_wrapper->runQueue(),
-                            static_cast<void*>(this),
-                            PrefetchAndWorkWrapper::do_work_task); */
   } else {
     //Must first acquire the 'run' lock (i.e. be the running block
     // in the 'run' queue and only after that acquire the 
@@ -147,12 +99,5 @@ PrefetchAndWorkWrapper::doPrefetchAndWork()
     // instance of this module be added to the non-thread-safe queue
     // in the case we unblock that queue when we do a getByLabel
      m_wrapper->prefetchAsync( new (tbb::task::allocate_root()) pnw::NonThreadSafeDoWorkTask(this));
-    
-    /*
-    dispatch_group_notify_f(m_wrapper->prefetchGroup(),
-                            m_wrapper->runQueue(),
-                            this,
-                            PrefetchAndWorkWrapper::do_suspend_run_queue_before_work_task);
-      */
   }
 }
