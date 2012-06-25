@@ -32,12 +32,7 @@ namespace demo {
     Module* module_() const;
     SerialTaskQueue* runQueue() const;
     
-    /*static void do_work_task(void* iContext);
-    static void do_work_and_resume_queues_task(void* iContext);
-    static void do_suspend_thread_unsafe_queue_before_work_task(void* iContext);
-    static void do_suspend_run_queue_before_work_task(void* iContext); */
     virtual void doWork() =0;
-    
     
     ModuleWrapper* m_wrapper;
 
