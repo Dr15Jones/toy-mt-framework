@@ -48,10 +48,8 @@ m_fatalJobErrorOccuredPtr(iOther.m_fatalJobErrorOccuredPtr)
   }
   
   m_paths.reserve(iOther.m_paths.size());
-  for(std::vector<PathContext>::const_iterator it = iOther.m_paths.begin(), itEnd = iOther.m_paths.end();
-      it != itEnd;
-      ++it) {
-    addPath((*it).path->clone(m_filters,&m_event));
+  for(auto& itPath : iOther.m_paths) {
+    addPath(itPath->clone(m_filters,&m_event));
   }
 }
 
@@ -75,12 +73,6 @@ namespace {
    };
 }
 
-void
-Schedule::do_schedule_callback_f(void* iContext){
-  Schedule* that = reinterpret_cast<Schedule*>(iContext);
-  that->m_scheduleCallback(not *that->m_fatalJobErrorOccuredPtr);
-}
-
 void 
 Schedule::process(ScheduleFilteringCallback iCallback) {
   m_scheduleCallback = iCallback;
@@ -90,17 +82,11 @@ Schedule::process(ScheduleFilteringCallback iCallback) {
      
     m_allPathsDoneTask = new (tbb::task::allocate_root()) PathsDoneTask{&m_scheduleCallback,m_fatalJobErrorOccuredPtr};
     m_allPathsDoneTask->set_ref_count(m_paths.size());
-    for(std::vector<PathContext>::iterator it = m_paths.begin(), itEnd = m_paths.end(); 
-        it != itEnd; ++it) {
-           auto context = &(*it);
-           //NOTE: although Schedule::processPresentPath is static the compiler is insisting
-           // that it has to caputure the 'this' pointer anyway
+    for(auto& path : m_paths) {
            Schedule* pThis = this; 
-           s_thread_safe_queue->push([context,pThis]{pThis->Schedule::processPresentPath(context);});
-      //dispatch_group_async_f(m_allPathsDoneGroup.get(),dispatch_get_global_queue(0, 0),
-      //                       &(*it),&Schedule::processPresentPath);
+           Path* pPath = path.get();
+           s_thread_safe_queue->push([pPath,pThis]{pThis->processPresentPath(pPath);});
     }
-    //dispatch_group_notify_f(m_allPathsDoneGroup.get(), dispatch_get_global_queue(0, 0), this, do_schedule_callback_f);
   } else {
     m_scheduleCallback(true);
   }
@@ -108,7 +94,7 @@ Schedule::process(ScheduleFilteringCallback iCallback) {
 
 void 
 Schedule::addPath(Path* iPath) {
-  m_paths.push_back(PathContext(this,iPath));
+  m_paths.push_back(boost::shared_ptr<Path>(iPath));
   iPath->setFatalJobErrorOccurredPointer(m_fatalJobErrorOccuredPtr);
 }
 
@@ -132,21 +118,14 @@ Schedule::addFilter(Filter* iFilter) {
   m_filters.push_back(boost::shared_ptr<FilterWrapper>(new FilterWrapper(boost::shared_ptr<Filter>(iFilter),&m_event)));
 }
 
-void
-Schedule::reset_f(void* iContext, size_t iIndex){
-  Schedule* that = reinterpret_cast<Schedule*>(iContext);
-  that->m_paths[iIndex].path->reset();
-}
-
 void 
 Schedule::reset() {
   for(auto fw: m_filters) {
     fw->reset();
   }
   for(auto& p: m_paths) {
-    p.path->reset();
+    p->reset();
   }
-  //dispatch_apply_f(m_paths.size(), dispatch_get_global_queue(0, 0), this, &Schedule::reset_f);
 }
 
 Event*
@@ -194,17 +173,12 @@ PathFilteringCallback::operator()(bool iSuccess) const
 
 
 void 
-Schedule::processPresentPath(void*iContext) {
-  PathContext* pc = reinterpret_cast<PathContext*>(iContext);
+Schedule::processPresentPath(Path* iPath) {
   //printf("Schedule::processPresentPath %u\n",iIndex);      
-  if(*(pc->schedule->m_fatalJobErrorOccuredPtr)) {
-    pc->schedule->m_callback(false);
+  if(*(m_fatalJobErrorOccuredPtr)) {
+    m_callback(false);
     return;
   }
-  //Enter the group here and leave once the path has finished
-  //dispatch_group_enter(pc->schedule->m_allPathsDoneGroup.get());
-  
-  //dispatch_group_t groupPtr = m_allPathsDoneGroup.get();
-  pc->path->runAsync(pc->schedule->m_callback);
+  iPath->runAsync(m_callback);
 }
 

@@ -58,24 +58,15 @@ namespace demo {
     Event* event();
     Schedule* clone();
     
-    struct PathContext {
-      PathContext(Schedule* iSchedule, Path* iPath):
-      schedule(iSchedule), path(iPath) {}
-      Schedule* schedule;
-      boost::shared_ptr<Path> path;
-    };
-    
   private:
-    static void processPresentPath(void*);
-    static void do_schedule_callback_f(void*);
-    static void reset_f(void*, size_t);
+    void processPresentPath(Path*);
 
     //used for cloning
     Schedule(Event*);
     void addPath(Path* iPath);
     void aPathHasFinished(bool iSuccess);
     Event m_event;
-    std::vector<PathContext> m_paths;
+    std::vector<boost::shared_ptr<Path>> m_paths;
     std::vector<boost::shared_ptr<FilterWrapper> > m_filters;
     tbb::task* m_allPathsDoneTask;
     PathFilteringCallback m_callback;
