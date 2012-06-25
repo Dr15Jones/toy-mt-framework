@@ -39,9 +39,6 @@ namespace demo {
     friend class FilterOnPathWrapper;
     Path(const Path& iOther); //undefined
 
-    static void reset_f(void*, size_t);
-    
-    //NOTE: iCallback must be on the heap
     void runFilterAsync( size_t iIndex);
     
     std::vector<FilterOnPathWrapper> m_filters;

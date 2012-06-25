@@ -50,13 +50,7 @@ void Path::runFilterAsync(size_t iIndex) {
   m_filters[iIndex].filterAsync();
 }
   
-void Path::reset_f(void* context, size_t iIndex) {
-  Path* that = static_cast<Path*>(context);
-  //that->m_filters[iIndex].reset();
-}
-
 void Path::reset() {
-  //dispatch_apply_f(m_filters.size(), dispatch_get_global_queue(0, 0), this, &Path::reset_f);
 }
   
 void Path::addFilter(FilterWrapper* iFilter,Event*iEvent) {
