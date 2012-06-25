@@ -12,6 +12,7 @@
 namespace demo {
   class ModuleWrapper;
   class Module;
+  class SerialTaskQueue;
   namespace pnw {
      class DoWorkTask;
      class NonThreadSafeDoWorkTask; 
@@ -29,6 +30,7 @@ namespace demo {
 
   private:
     Module* module_() const;
+    SerialTaskQueue* runQueue() const;
     
     /*static void do_work_task(void* iContext);
     static void do_work_and_resume_queues_task(void* iContext);
