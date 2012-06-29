@@ -7,6 +7,8 @@
  *
  */
 
+#include <assert.h>
+#include <vector>
 #include "WaitingList.h"
 
 using namespace demo;
@@ -34,10 +36,18 @@ void
 WaitingList::announce()
 {
    tbb::task* t=0;
+   //Need a temporary storage since one of these tasks could
+   // cause the next event to start processing which would refill 
+   // this waiting list after it has been reset
+   std::vector<tbb::task*> temp;
+   temp.reserve(m_tasks.unsafe_size());
    while(m_tasks.try_pop(t)) {
-      if(0==t->decrement_ref_count()) {
-         tbb::task::spawn(*t);
-      }
+     temp.push_back(t);
+   }
+   for(auto t: temp) {
+     if(0==t->decrement_ref_count()) {
+       tbb::task::spawn(*t);
+     }
    }
 }
 
