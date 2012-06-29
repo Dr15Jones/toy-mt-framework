@@ -10,6 +10,7 @@
 
 #ifndef DispatchProcessingDemo_FilterWrapper_h
 #define DispatchProcessingDemo_FilterWrapper_h
+#include <atomic>
 #include <boost/shared_ptr.hpp>
 #include "ModuleWrapper.h"
 #include "Filter.h"
@@ -33,7 +34,7 @@ namespace demo {
     FilterWrapper(const FilterWrapper&);
     boost::shared_ptr<Filter> m_filter;
     bool m_keep;
-    bool m_wasRun;    
+    std::atomic<bool> m_wasRun;    
   };
 }
 
