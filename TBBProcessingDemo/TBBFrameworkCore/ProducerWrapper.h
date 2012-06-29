@@ -31,7 +31,8 @@ namespace demo {
     WaitingList& doProduceAsync();
 
     void reset();
-    
+
+    bool wasRun() const {return m_wasRun;}
   private:
     void doProduceAsyncImpl();
     void doWork();
