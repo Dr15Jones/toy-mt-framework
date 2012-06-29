@@ -66,7 +66,8 @@ Event::get(const Getter* iGetter) const
   auto& gotten = it->second;
   bool wasCached = gotten.wasCached();
   if(not wasCached) {
-    std::cout << "Event::get called for missing item "<<iGetter->label()<<" "<<iGetter->product()<<std::endl;
+    //assert(gotten.producer()->wasRun());
+    std::cout << "Event::get called for missing item "<<iGetter->label()<<" "<<iGetter->product()<<" event #"<<index()<<std::endl;
   }
   assert(wasCached);
   return gotten.value();
