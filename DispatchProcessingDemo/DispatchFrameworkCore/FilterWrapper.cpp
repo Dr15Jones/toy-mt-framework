@@ -17,10 +17,10 @@
 using namespace demo;
 
 inline
-boost::shared_ptr<Filter>
+Filter*
 FilterWrapper::filter() const
 {
-  return m_filter;
+  return m_filter.get();
 }
 
 FilterWrapper::FilterWrapper(boost::shared_ptr<Filter> iFilter,Event* iEvent):
@@ -33,7 +33,7 @@ m_wasRun(false)
 
 FilterWrapper::FilterWrapper(const FilterWrapper& iWrapper,Event* iEvent):
 ModuleWrapper(iWrapper,iEvent),
-m_filter(iWrapper.filter()),
+m_filter(iWrapper.m_filter),
 m_keep(false),
 m_wasRun(false)
 {

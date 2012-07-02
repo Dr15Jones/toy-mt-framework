@@ -27,7 +27,7 @@ namespace demo {
     bool doFilter();
     
     bool wasRun() const { return m_wasRun;}
-    boost::shared_ptr<Filter> filter() const;
+    Filter* filter() const;
     
   private:
     FilterWrapper(const FilterWrapper&);
