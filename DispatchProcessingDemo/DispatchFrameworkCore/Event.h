@@ -55,11 +55,19 @@ namespace demo {
     
     Event* clone();
     
+    struct LabelAndProduct {
+      const char*  m_label;
+      const char*  m_product;
+      LabelAndProduct(const char* iLabel, const char* iProduct ):
+      m_label(iLabel),m_product(iProduct) {}
+      
+      bool operator<(const LabelAndProduct&) const;
+    };
+    
   private:
     void getAsyncImpl(Getter* iGetter, GroupHolder iGroup) const;
     
-    std::map<std::pair<std::string,std::string>,
-    DataCache > m_lookupMap;
+    std::map<LabelAndProduct,DataCache > m_lookupMap;
     unsigned long m_index;
     double m_relativeSpeed;
   };

@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <iostream>
 #include <cstdio>
+#include <cstring>
 
 #include "Event.h"
 #include "Producer.h"
@@ -17,7 +18,18 @@
 #include "Getter.h"
 
 using namespace demo;
-typedef std::map<std::pair<std::string,std::string>, DataCache > LookupMap;
+typedef std::map<Event::LabelAndProduct, DataCache > LookupMap;
+
+inline
+bool
+Event::LabelAndProduct::operator<(const Event::LabelAndProduct& iRHS) const {
+  int comp = std::strcmp(m_label, iRHS.m_label);
+  if(comp==0) {
+    comp = std::strcmp(m_product,iRHS.m_product);
+  }
+  return comp<0;
+}
+
 
 Event::Event():
 m_lookupMap(),
@@ -42,7 +54,7 @@ int
 Event::get(const std::string& iModule, 
            const std::string& iProduct) const
 {
-   LookupMap::const_iterator it = m_lookupMap.find(std::make_pair(iModule,iProduct));
+   LookupMap::const_iterator it = m_lookupMap.find(LabelAndProduct(iModule.c_str(),iProduct.c_str()));
    assert(it != m_lookupMap.end());
    if(!it->second.wasCached()) {
       GroupHolder waitGroup = it->second.producer()->doProduceAsync();
@@ -57,7 +69,7 @@ Event::get(const Getter* iGetter) const
   //NOTE: If you have a Getter then we've already prefetched so 
   // this can be done synchronously
   
-  LookupMap::const_iterator it = m_lookupMap.find(std::make_pair(iGetter->label(),iGetter->product()));
+  LookupMap::const_iterator it = m_lookupMap.find(LabelAndProduct(iGetter->label().c_str(),iGetter->product().c_str()));
 
   assert(it != m_lookupMap.end());
   auto& gotten = it->second;
@@ -84,7 +96,7 @@ Event::getAsyncImpl(Getter* iGetter, GroupHolder iGroupDoneWithGet) const
    // that I sometimes get the answer for the first thread when I'm running the second thread
    // this causes the wrong producer to be called
    //printf("   Event::getAsyncImp look for %s\n",iGetter->label().c_str());
-   LookupMap::const_iterator it = m_lookupMap.find(std::make_pair(iGetter->label(),iGetter->product()));
+   LookupMap::const_iterator it = m_lookupMap.find(LabelAndProduct(iGetter->label().c_str(),iGetter->product().c_str()));
    //printf("    found: %s %p\n",it->first.first.c_str(),it->second.first);
    if(it==m_lookupMap.end()) {
      printf("   Event::getAsyncImp failed to find %s '%s'\n",iGetter->label().c_str(),iGetter->product().c_str());
@@ -114,7 +126,7 @@ Event::getAsync(Getter* iGetter, GroupHolder iGroupDoneWithGet) const
 
 void 
 Event::put(const Producer* iProd, const std::string& iProduct, int iPut) {
-   LookupMap::iterator itFind = m_lookupMap.find(std::make_pair(iProd->label(),iProduct));
+   LookupMap::iterator itFind = m_lookupMap.find(LabelAndProduct(iProd->label().c_str(),iProduct.c_str()));
    assert(itFind != m_lookupMap.end());
   itFind->second.setValue(iPut);
 }
@@ -126,7 +138,7 @@ Event::addProducer(Producer* iProd) {
    for(std::set<DataKey>::const_iterator it = keys.begin(), itEnd = keys.end();
        it != itEnd;
        ++it) {
-     m_lookupMap.insert(std::make_pair(std::make_pair(iProd->label(), *it), DataCache(iProd,this)));
+     m_lookupMap.insert(std::make_pair(LabelAndProduct(iProd->label().c_str(), it->c_str()), DataCache(iProd,this)));
    }
 }
 void 
