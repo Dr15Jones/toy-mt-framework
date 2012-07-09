@@ -45,10 +45,18 @@ namespace demo {
       m_relativeSpeed = iSpeed;
     }
 
+    struct LabelAndProduct {
+      const char*  m_label;
+      const char*  m_product;
+      LabelAndProduct(const char* iLabel, const char* iProduct ):
+      m_label(iLabel),m_product(iProduct) {}
+      
+      bool operator<(const LabelAndProduct&) const;
+    };
+
   private:
     
-    std::map<std::pair<std::string,std::string>,
-    std::pair<Producer*,int> > m_lookupMap;
+    std::map<LabelAndProduct,std::pair<Producer*,int> > m_lookupMap;
     unsigned long m_index;
     double m_relativeSpeed;
   };

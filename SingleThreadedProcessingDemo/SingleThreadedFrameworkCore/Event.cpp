@@ -8,18 +8,30 @@
 
 #include <iostream>
 #include <cassert>
+#include <cstring>
 
 #include "Event.h"
 #include "Producer.h"
 #include "Getter.h"
 
 using namespace demo;
-typedef std::map<std::pair<std::string,std::string>, std::pair<Producer*,int> > LookupMap;
+typedef std::map<Event::LabelAndProduct, std::pair<Producer*,int> > LookupMap;
+
+inline
+bool
+Event::LabelAndProduct::operator<(const Event::LabelAndProduct& iRHS) const {
+  int comp = std::strcmp(m_label, iRHS.m_label);
+  if(comp==0) {
+    comp = std::strcmp(m_product,iRHS.m_product);
+  }
+  return comp<0;
+}
+
 int 
 Event::get(const std::string& iModule, 
            const std::string& iProduct) const
 {
-  LookupMap::const_iterator it = m_lookupMap.find(std::make_pair(iModule,iProduct));
+  LookupMap::const_iterator it = m_lookupMap.find(LabelAndProduct(iModule.c_str(),iProduct.c_str()));
   assert(it != m_lookupMap.end());
   if(!it->second.first->wasRun()) {
     it->second.first->doProduce(*const_cast<Event*>(this));
@@ -30,7 +42,7 @@ Event::get(const std::string& iModule,
 
 void 
 Event::put(const Producer* iProd, const std::string& iProduct, int iPut) {
-  LookupMap::iterator itFind = m_lookupMap.find(std::make_pair(iProd->label(),iProduct));
+  LookupMap::iterator itFind = m_lookupMap.find(LabelAndProduct(iProd->label().c_str(),iProduct.c_str()));
   assert(itFind != m_lookupMap.end());
   itFind->second.second = iPut;
 }
@@ -42,7 +54,7 @@ Event::addProducer(Producer* iProd) {
   for(std::set<DataKey>::const_iterator it = keys.begin(), itEnd = keys.end();
       it != itEnd;
       ++it) {
-    m_lookupMap[std::make_pair(iProd->label(),*it)]=std::make_pair(iProd,int(0));
+    m_lookupMap[LabelAndProduct(iProd->label().c_str(),it->c_str())]=std::make_pair(iProd,int(0));
   }
 }
 void 
@@ -57,7 +69,7 @@ Event::reset()
 
 void Event::get(Getter* iGetter) const
 {
-  LookupMap::const_iterator it = m_lookupMap.find(std::make_pair(iGetter->label(),iGetter->product()));
+  LookupMap::const_iterator it = m_lookupMap.find(LabelAndProduct(iGetter->label().c_str(),iGetter->product().c_str()));
   //printf("    found: %s %p\n",it->first.first.c_str(),it->second.first);
   assert(it != m_lookupMap.end());
   const std::pair<Producer*,int>* found = &(it->second);
