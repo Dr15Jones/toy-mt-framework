@@ -16,6 +16,8 @@
 #include "busyWait.h"
 #include "Event.h"
 
+static const std::string s_blank("");
+
 namespace demo {
   
   EventTimesProducerBase::EventTimesProducerBase(const boost::property_tree::ptree& iConfig):
@@ -24,7 +26,7 @@ namespace demo {
     
     for(const boost::property_tree::ptree::value_type& v: iConfig.get_child("toGet")) {
       m_getters.push_back(registerGet(v.second.get<std::string>("label"), 
-                                      ""));
+                                      s_blank));
     }
     m_eventTimes.reserve(iConfig.get_child("eventTimes").size());
     for(const boost::property_tree::ptree::value_type& v: iConfig.get_child("eventTimes")) {
@@ -45,6 +47,6 @@ namespace demo {
     unsigned long index = iEvent.index() % m_eventTimes.size();
     
     wait(m_eventTimes[index]);
-    iEvent.put(this,"",static_cast<int>(sum));
+    iEvent.put(this,s_blank,static_cast<int>(sum));
   }
 }
