@@ -9,13 +9,15 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
-
+#include <atomic>
 
 
 #include "ProducerWrapper.h"
 #include "Producer.h"
 #include "Event.h"
 #include "Queues.h"
+
+//std::atomic<unsigned long> s_numberOfTasks{0};
 
 using namespace demo;
 
@@ -45,6 +47,7 @@ ModuleWrapper(iProd,iEvent),
 PrefetchAndWorkWrapper(this),
 m_producer(iProd),
 m_waitingList{},
+m_requestedToRun{ATOMIC_FLAG_INIT},
 m_wasRun(false)
 {
 }
@@ -55,6 +58,7 @@ ModuleWrapper(iOther,iEvent),
 PrefetchAndWorkWrapper(this),
 m_waitingList{},
 m_producer(iOther.m_producer),
+m_requestedToRun{ATOMIC_FLAG_INIT},
 m_wasRun(false)
 {
 }
@@ -64,6 +68,7 @@ ModuleWrapper(iOther),
 PrefetchAndWorkWrapper(this),
 m_waitingList{}, //we only use the copy constructor during cloning and we have no waiting at that time
 m_producer(iOther.m_producer),
+m_requestedToRun{ATOMIC_FLAG_INIT},
 m_wasRun(iOther.m_wasRun)
 {
 }
@@ -77,22 +82,33 @@ ProducerWrapper::reset()
 {
   m_wasRun=false;
   m_waitingList.reset();
+  m_requestedToRun.clear();
   ModuleWrapper::reset();
 }
 
 WaitingList&
 ProducerWrapper::doProduceAsync()
 {
-  if(m_wasRun) {
+  //if it has already run or we are not the first task
+  // to request the Producer to be run then just return the
+  // wait list without scheduling the Producer to be run.
+  //This is needed so we don't have redundant tasks (i.e. ones where an earlier
+  // task did the same work) from previous events hanging around when the next
+  // event starts. This can happen since we don't wait for ALL tasks to complete
+  // we only wait for the results for a task to be available.
+  if(m_wasRun or m_requestedToRun.test_and_set()) {
     return m_waitingList;
   }
   
   //NOTE: review this. I think we could just call 'doProduceAsyncImpl
   // directly since 'doPrefetchAndWork' does all of its activities asynchronously
   // anyway 
+
+  //SECOND NOTE: Since we now only request to run on the first request I can
+  // get rid of the m_requestedPrefetch in the base class since we will only
+  // ask to prefetch once now
   
-  //need to call group_async so that we 'enter' the group before returning
-  // our value
+  //++s_numberOfTasks;
   auto pThis = this;
   s_thread_safe_queue->push([pThis]{pThis->doProduceAsyncImpl();});
   return m_waitingList;
@@ -119,6 +135,6 @@ ProducerWrapper::doWork()
     __sync_synchronize();
     this->m_wasRun = true;
   }
-  
+  //--s_numberOfTasks;
   m_waitingList.doneWaiting();
 }
