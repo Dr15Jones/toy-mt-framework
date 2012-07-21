@@ -89,7 +89,12 @@ ModuleWrapper::prefetchAsync(tbb::task* iPrefetchDoneTask)
       tbb::task::destroy(*iPrefetchDoneTask);
     }
   } else {
-    //if everything finishes before we leave this routine, we need to launch the task
-    tbb::task::spawn(*iPrefetchDoneTask);
+    //NOTE: we could still use the m_requestedPrefetch to see if we have already spawned a similar task
+    // and if so we don't have to spawn it again.
+    if (not m_requestedPrefetch.test_and_set()) {
+      tbb::task::spawn(*iPrefetchDoneTask);
+    } else {
+      tbb::task::destroy(*iPrefetchDoneTask);
+    }
   }
 }
