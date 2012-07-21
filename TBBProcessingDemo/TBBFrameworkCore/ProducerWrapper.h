@@ -42,7 +42,6 @@ namespace demo {
     
     boost::shared_ptr<Producer> m_producer;
     WaitingList m_waitingList;
-    std::atomic_flag m_requestedToRun;
     bool m_wasRun;
 
   };

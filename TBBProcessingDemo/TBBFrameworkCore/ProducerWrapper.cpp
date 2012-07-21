@@ -47,7 +47,6 @@ ModuleWrapper(iProd,iEvent),
 PrefetchAndWorkWrapper(this),
 m_producer(iProd),
 m_waitingList{},
-m_requestedToRun{ATOMIC_FLAG_INIT},
 m_wasRun(false)
 {
 }
@@ -58,7 +57,6 @@ ModuleWrapper(iOther,iEvent),
 PrefetchAndWorkWrapper(this),
 m_waitingList{},
 m_producer(iOther.m_producer),
-m_requestedToRun{ATOMIC_FLAG_INIT},
 m_wasRun(false)
 {
 }
@@ -68,7 +66,6 @@ ModuleWrapper(iOther),
 PrefetchAndWorkWrapper(this),
 m_waitingList{}, //we only use the copy constructor during cloning and we have no waiting at that time
 m_producer(iOther.m_producer),
-m_requestedToRun{ATOMIC_FLAG_INIT},
 m_wasRun(iOther.m_wasRun)
 {
 }
@@ -82,7 +79,6 @@ ProducerWrapper::reset()
 {
   m_wasRun=false;
   m_waitingList.reset();
-  m_requestedToRun.clear();
   ModuleWrapper::reset();
 }
 
@@ -96,7 +92,10 @@ ProducerWrapper::doProduceAsync()
   // task did the same work) from previous events hanging around when the next
   // event starts. This can happen since we don't wait for ALL tasks to complete
   // we only wait for the results for a task to be available.
-  if(m_wasRun or m_requestedToRun.test_and_set()) {
+  //std::cout <<"requested to run "<<m_producer->label()<<std::endl;
+  //if(m_wasRun or m_requestedToRun.test_and_set()) {
+  if(m_wasRun) {
+    //std::cout <<"  already run"<<std::endl;
     return m_waitingList;
   }
   
