@@ -34,7 +34,7 @@ namespace demo {
   
   void 
   EventTimesSyncGetProducerBase::produce(edm::Event& iEvent) {
-    fprintf(stderr,"start Producer %s\n",label().c_str());
+    //fprintf(stderr,"start Producer %s\n",label().c_str());
     int sum=0;
     for(auto const& get: m_toGet) {
       sum +=iEvent.get(get,s_blank);
@@ -44,6 +44,6 @@ namespace demo {
     
     wait(m_eventTimes[index]);
     iEvent.put(this,s_blank,static_cast<int>(sum));
-    fprintf(stderr,"end Producer %s\n",label().c_str());
+    //fprintf(stderr,"end Producer %s\n",label().c_str());
   }
 }
