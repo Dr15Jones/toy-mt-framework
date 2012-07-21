@@ -58,8 +58,13 @@ Event::get(const std::string& iModule,
    if(!it->second.wasCached()) {
       auto& waitList = it->second.producer()->doProduceAsync();
       tbb::empty_task* doneTask = new (tbb::task::allocate_root()) tbb::empty_task();
+      //Ref count needs to be 1 since WaitList will increment and decrement it again
+      // doneTask->wait_for_all() waits for the task ref count to drop back to 1
+      doneTask->increment_ref_count();
       waitList.add(doneTask);
+      //fprintf(stderr,"Waiting to get %s\n",iModule.c_str());
       doneTask->wait_for_all();
+      //fprintf(stderr,"Done waiting to get %s\n",iModule.c_str());
       tbb::task::destroy(*doneTask);
    }
    return it->second.value();
@@ -165,8 +170,19 @@ namespace demo {
          }
          int returnValue = m_event->get(iModule,iProduct);
          if(!m_isThreadSafe) {
-            //we must acquire the 'lock' on the non-thread-safe queue again
-            s_non_thread_safe_queue->push([]{s_non_thread_safe_queue->pause();});
+           //we must acquire the 'lock' on the non-thread-safe queue again
+           tbb::empty_task* doneTask = new (tbb::task::allocate_root()) tbb::empty_task();
+           //Ref count needs to be w since task willdecrement it again once we've aquired
+           // the lock and  doneTask->wait_for_all() waits for the task ref count
+           // to drop back to 1
+           doneTask->increment_ref_count();
+           doneTask->increment_ref_count();
+           s_non_thread_safe_queue->push([doneTask]{
+             s_non_thread_safe_queue->pause();
+             doneTask->decrement_ref_count();
+           });
+           doneTask->wait_for_all();
+           tbb::task::destroy(*doneTask);
          }
          return returnValue;
       }
