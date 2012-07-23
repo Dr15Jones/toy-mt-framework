@@ -110,16 +110,16 @@ EventProcessor::get_and_process_one_event_f(void * context)
 void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
   m_schedules.reserve(iNumConcurrentEvents);
 
+  //Use 'enqueue' rather than 'spawn' in order to increase the probability that each event
+  // will be processed on its own thread, therby increasing locality
   for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
     Schedule* scheduleTemp = m_schedules[0].m_schedule->clone();
     m_schedules.push_back(LoopContext(scheduleTemp,this));
     m_eventLoopWaitTask->increment_ref_count();
-    tbb::task::spawn( *(new (tbb::task::allocate_root()) GetAndProcessOneEventTask{m_schedules.back()}));
+    tbb::task::enqueue( *(new (tbb::task::allocate_root()) GetAndProcessOneEventTask{m_schedules.back()}));
   }
   //Do this after all others so that we are not calling 'Event->clone()' while the
   // object is being accessed on another thread
   m_eventLoopWaitTask->increment_ref_count();
-  tbb::task::spawn( *(new (tbb::task::allocate_root()) GetAndProcessOneEventTask{m_schedules[0]}));
-  
-  m_eventLoopWaitTask->wait_for_all();
+  m_eventLoopWaitTask->spawn_and_wait_for_all(*(new (tbb::task::allocate_root()) GetAndProcessOneEventTask{m_schedules[0]}));
 }
