@@ -4,7 +4,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <sstream>
 #include "tbb/task_scheduler_init.h"
-
+#include <memory>
 #include "Queues.h"
 #include "EventProcessor.h"
 
@@ -40,7 +40,7 @@ int main (int argc, char * const argv[]) {
     exit(1);
   }
   const unsigned int nThreads = pConfig.get<unsigned int>("process.options.nThreads",tbb::task_scheduler_init::default_num_threads());
-  tbb::task_scheduler_init tsi(nThreads);
+  std::unique_ptr<tbb::task_scheduler_init> tsi{new tbb::task_scheduler_init(nThreads)};
   
   const size_t iterations = pConfig.get<size_t>("process.source.iterations");
   demo::EventProcessor ep;
@@ -119,8 +119,8 @@ int main (int argc, char * const argv[]) {
    
     double realTime = tp.tv_sec - startRealTime.tv_sec + microsecToSec * (tp.tv_usec - startRealTime.tv_usec);
     std::cout <<"# threads:"<<nThreads<<" # simultaneous events:"<<nEvents<<" total # events:"<<iterations<<" cpu time:" << cpuTime<<" real time:"<<realTime<<" events/sec:"<<iterations/realTime<<std::endl;
-
   }
+  tsi.release();
 
   return 0;
 }
