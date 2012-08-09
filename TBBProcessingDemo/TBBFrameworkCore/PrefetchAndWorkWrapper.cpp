@@ -45,10 +45,10 @@ namespace demo {
       
          tbb::task* execute() {
             auto wrapper = this->m_wrapper;
-            wrapper->runQueue()->push([wrapper]{
+            auto nextTask = wrapper->runQueue()->pushAndGetNextTaskToRun([wrapper]{
                wrapper->doWork();
                });
-            return nullptr;
+            return nextTask;
          }
       private:
          PrefetchAndWorkWrapper* m_wrapper;
@@ -61,7 +61,7 @@ namespace demo {
       
          tbb::task* execute() {
             auto wrapper = m_wrapper;
-            wrapper->runQueue()->push([wrapper]{
+            auto nextTask = wrapper->runQueue()->pushAndGetNextTaskToRun([wrapper]{
                //This is running in the m_runQueue so we know this instance is
                // the one that has the 'lock'.
                wrapper->runQueue()->pause();
@@ -79,7 +79,7 @@ namespace demo {
                   });
                });
             });
-            return nullptr;
+            return nextTask;
          }
       public:
          PrefetchAndWorkWrapper* m_wrapper;
