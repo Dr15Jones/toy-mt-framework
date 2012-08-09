@@ -82,8 +82,8 @@ ProducerWrapper::reset()
   ModuleWrapper::reset();
 }
 
-WaitingList&
-ProducerWrapper::doProduceAsync()
+void
+ProducerWrapper::doProduceAsync(tbb::task* iCallTaskWhenDone)
 {
   //if it has already run or we are not the first task
   // to request the Producer to be run then just return the
@@ -94,9 +94,10 @@ ProducerWrapper::doProduceAsync()
   // we only wait for the results for a task to be available.
   //std::cout <<"requested to run "<<m_producer->label()<<std::endl;
   //if(m_wasRun or m_requestedToRun.test_and_set()) {
+  m_waitingList.add(iCallTaskWhenDone);
   if(m_wasRun) {
     //std::cout <<"  already run"<<std::endl;
-    return m_waitingList;
+    return;
   }
   
   //NOTE: review this. I think we could just call 'doProduceAsyncImpl
@@ -110,7 +111,7 @@ ProducerWrapper::doProduceAsync()
   //++s_numberOfTasks;
   auto pThis = this;
   s_thread_safe_queue->push([pThis]{pThis->doProduceAsyncImpl();});
-  return m_waitingList;
+  return;
 }
 
 

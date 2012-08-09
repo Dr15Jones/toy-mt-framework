@@ -26,9 +26,8 @@ namespace demo {
     ProducerWrapper(const ProducerWrapper&);
     ~ProducerWrapper();
     
-    //returns the WaitingList assigned to when produce has finished
-    // this way callers can add a task
-    WaitingList& doProduceAsync();
+    ///Pass task to be called when data has been produced
+    void doProduceAsync(tbb::task* iCallTaskWhenDone);
 
     void reset();
 

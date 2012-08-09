@@ -56,12 +56,11 @@ Event::get(const std::string& iModule,
    LookupMap::const_iterator it = m_lookupMap.find(LabelAndProduct(iModule.c_str(),iProduct.c_str()));
    assert(it != m_lookupMap.end());
    if(!it->second.wasCached()) {
-      auto& waitList = it->second.producer()->doProduceAsync();
       tbb::empty_task* doneTask = new (tbb::task::allocate_root()) tbb::empty_task();
       //Ref count needs to be 1 since WaitList will increment and decrement it again
       // doneTask->wait_for_all() waits for the task ref count to drop back to 1
       doneTask->increment_ref_count();
-      waitList.add(doneTask);
+      it->second.producer()->doProduceAsync(doneTask);
       //fprintf(stderr,"Waiting to get %s\n",iModule.c_str());
       doneTask->wait_for_all();
       //fprintf(stderr,"Done waiting to get %s\n",iModule.c_str());
@@ -108,9 +107,7 @@ Event::getAsyncImpl(Getter* iGetter, tbb::task* iTaskDoneWithGet) const
    const DataCache* found = &(it->second);
    if(!found->wasCached()) {
       //printf("     getGroup: %s\n",found->first->label().c_str());
-      auto& waitList = found->producer()->doProduceAsync();
-      //Need to announce when we're done getting the data by leaving the group
-      waitList.add(iTaskDoneWithGet);
+      found->producer()->doProduceAsync(iTaskDoneWithGet);
    } else {
       //printf("     iGetter->set from already run producer %s %i\n",found->first->label().c_str(),found->second);
       //iGetter->set(found->value());
