@@ -32,8 +32,9 @@ namespace demo {
         bool resume();
 
       private:
-        void pushTask(TaskBase*);
-        tbb::task* finishedTask();
+        virtual void pushTask(TaskBase*) /*final*/;
+        virtual tbb::task* pushAndGetNextTask(TaskBase*) /*final*/;
+        virtual tbb::task* finishedTask() /*final*/;
         //returns nullptr if a task is already being processed
         TaskBase* pickNextTask();
 
