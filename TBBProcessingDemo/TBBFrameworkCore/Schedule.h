@@ -10,6 +10,7 @@
 #define DispatchProcessingDemo_Schedule_h
 #include <vector>
 #include <string>
+#include <atomic>
 #include <boost/shared_ptr.hpp>
 #include "PathFilteringCallback.h"
 #include "Path.h"
@@ -68,8 +69,8 @@ namespace demo {
     Event m_event;
     std::vector<boost::shared_ptr<Path>> m_paths;
     std::vector<boost::shared_ptr<FilterWrapper> > m_filters;
-    tbb::task* m_allPathsDoneTask;
-    PathFilteringCallback m_callback;
+    std::atomic<unsigned int> m_pathsStillRunning;
+    PathFilteringCallback m_pathDoneCallback;
     ScheduleFilteringCallback m_scheduleCallback;
     bool* m_fatalJobErrorOccuredPtr;
   };

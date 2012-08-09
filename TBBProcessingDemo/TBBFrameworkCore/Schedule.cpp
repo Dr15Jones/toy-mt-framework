@@ -20,16 +20,16 @@ using namespace demo;
 
 Schedule::Schedule()
   : m_event(),
-  m_allPathsDoneTask(0),
-  m_callback(this),
+  m_pathsStillRunning(0),
+  m_pathDoneCallback(this),
   m_scheduleCallback(),
   m_fatalJobErrorOccuredPtr(0){
 }
 
 Schedule::Schedule(Event* iEvent):
 m_event(*iEvent),
-m_allPathsDoneTask(0),
-m_callback(this),
+m_pathsStillRunning(0),
+m_pathDoneCallback(this),
 m_scheduleCallback(),
 m_fatalJobErrorOccuredPtr(0)
 {  
@@ -37,8 +37,8 @@ m_fatalJobErrorOccuredPtr(0)
 
 Schedule::Schedule(const Schedule& iOther):
 m_event(iOther.m_event),
-m_allPathsDoneTask(0),
-m_callback(this),
+m_pathsStillRunning(0),
+m_pathDoneCallback(this),
 m_scheduleCallback(),
 m_fatalJobErrorOccuredPtr(iOther.m_fatalJobErrorOccuredPtr)
 {
@@ -53,26 +53,6 @@ m_fatalJobErrorOccuredPtr(iOther.m_fatalJobErrorOccuredPtr)
   }
 }
 
-namespace {
-   class PathsDoneTask : public tbb::task {
-   public:
-      PathsDoneTask(ScheduleFilteringCallback* iCallback, bool* iFatalJobError):
-      m_callback{iCallback},
-      m_fatalJobError{iFatalJobError}
-      {}
-      
-      //CDJ Does this really have to be a task? I could just have an atomic count down and run
-      // the callback when I get to 0
-      tbb::task* execute() {
-         (*m_callback)(not *m_fatalJobError); 
-         return 0;        
-      }
-   private:
-      ScheduleFilteringCallback* m_callback;
-      bool* m_fatalJobError;
-   };
-}
-
 void 
 Schedule::process(ScheduleFilteringCallback iCallback) {
   m_scheduleCallback = iCallback;
@@ -80,8 +60,7 @@ Schedule::process(ScheduleFilteringCallback iCallback) {
   reset();
   if(!m_paths.empty()) {
      
-    m_allPathsDoneTask = new (tbb::task::allocate_root()) PathsDoneTask{&m_scheduleCallback,m_fatalJobErrorOccuredPtr};
-    m_allPathsDoneTask->set_ref_count(m_paths.size());
+    m_pathsStillRunning=m_paths.size();
     for(auto& path : m_paths) {
            Schedule* pThis = this; 
            Path* pPath = path.get();
@@ -154,13 +133,9 @@ Schedule::aPathHasFinished(bool iSuccess) {
    if(!iSuccess) {
      *(m_fatalJobErrorOccuredPtr) = true;
    }
-   if(0==m_allPathsDoneTask->decrement_ref_count()) {
-      auto temp = m_allPathsDoneTask;
-      m_allPathsDoneTask=0;
-      //we must be sure m_allPathsDoneTask is set before spawn is called
-      // since the task being spawned will change the value of m_allPathsDoneTask
-      __sync_synchronize();
-      tbb::task::spawn(*temp);
+   assert(0!=m_pathsStillRunning);
+   if(0== --m_pathsStillRunning) {
+     m_scheduleCallback(not *m_fatalJobErrorOccuredPtr);
    }
 }
 
@@ -176,9 +151,9 @@ void
 Schedule::processPresentPath(Path* iPath) {
   //printf("Schedule::processPresentPath %u\n",iIndex);      
   if(*(m_fatalJobErrorOccuredPtr)) {
-    m_callback(false);
+    m_scheduleCallback(false);
     return;
   }
-  iPath->runAsync(m_callback);
+  iPath->runAsync(m_pathDoneCallback);
 }
 
