@@ -25,14 +25,22 @@ SerialTaskQueue::resume() {
 
 void
 SerialTaskQueue::pushTask(SerialTaskQueue::TaskBase* iTask) {
-  if(0!=iTask) {
-    m_tasks.push(iTask);
-    tbb::task* t = pickNextTask();
-    if(0!=t) {
-      tbb::task::spawn(*t);      
-    }
+  tbb::task* t = pushAndGetNextTask(iTask);
+  if(0!=t) {
+    tbb::task::spawn(*t);      
   }
 }
+
+tbb::task* 
+SerialTaskQueue::pushAndGetNextTask(TaskBase* iTask) {
+  tbb::task* returnValue{0};
+  if(0!=iTask) {
+    m_tasks.push(iTask);
+    returnValue = pickNextTask();
+  }
+  return returnValue;
+}
+
 
 tbb::task*
 SerialTaskQueue::finishedTask() {

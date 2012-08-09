@@ -19,6 +19,12 @@ ConcurrentTaskQueue::pushTask(ConcurrentTaskQueue::TaskBase* iTask) {
 }
 
 tbb::task*
+ConcurrentTaskQueue::pushAndGetNextTask(ConcurrentTaskQueue::TaskBase* iTask) {
+  return iTask;
+}
+
+
+tbb::task*
 ConcurrentTaskQueue::finishedTask() {
    return 0;
 }

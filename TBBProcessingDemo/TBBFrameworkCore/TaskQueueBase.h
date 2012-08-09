@@ -50,8 +50,16 @@ namespace demo {
            pushTask(pTask);
         }
 
+        template<typename T>
+        tbb::task* pushAndGetNextTaskToRun(const T& iAction) {
+          QueuedTask<T>* pTask{ new (tbb::task::allocate_root()) QueuedTask<T>{iAction} };
+          pTask->setQueue(this);           
+          return pushAndGetNextTask(pTask);          
+        }
+
       private:
         virtual void pushTask(TaskBase*)=0;
+        virtual tbb::task* pushAndGetNextTask(TaskBase*)=0;
         friend class TaskBase;
         virtual tbb::task* finishedTask() = 0;
    };

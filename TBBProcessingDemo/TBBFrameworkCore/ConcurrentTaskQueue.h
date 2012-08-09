@@ -22,8 +22,9 @@ namespace demo {
         {  }
 
       private:
-        void pushTask(TaskBase*);
-        tbb::task* finishedTask();
+        virtual void pushTask(TaskBase*) /*final*/;
+        virtual tbb::task* pushAndGetNextTask(TaskBase*) /*final*/;
+        tbb::task* finishedTask() /*final*/;
    };
 }
 
