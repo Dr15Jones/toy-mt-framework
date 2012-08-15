@@ -1,5 +1,8 @@
 #Change this to point to your boost installation
 BOOST_INCLUDES := -I/Users/cdj/src/cms/software/FWLiteVersions/osx106_amd64_gcc461/external/boost/1.47.0-cms3/include
+CPPUNIT_INCLUDES := -I/Users/cdj/src/cms/threading/external/include
+CPPUNIT_LIB_PATH := -L/Users/cdj/src/cms/threading/external/lib
+CPPUNIT_LIB := $(CPPUNIT_LIB_PATH) -lcppunit
 #BOOST_INCLUDES := -I$(BOOST_INC)
 UNAME:=$(shell uname -s)
 #UNAME:=Linux
@@ -15,10 +18,10 @@ TBB_LIB_PATH := -L/home/paterno/lib
 TBB_LIB := $(TBB_LIB_PATH) -ltbb
 endif
 CXX=g++
-CPPFLAGS=$(TBB_INCLUDES) $(BOOST_INCLUDES) -ITBBFrameworkCore/ -I../BusyWaitCalibration/
-#CXXFLAGS=-O3 -g -std=c++0x -fPIC
-CXXFLAGS=-g -std=c++0x -fPIC
-LDFLAGS= -std=c++0x
+CPPFLAGS=$(TBB_INCLUDES) $(BOOST_INCLUDES) $(CPPUNIT_INCLUDES) -ITBBFrameworkCore/ -I../BusyWaitCalibration/
+CXXFLAGS=-O3 -g -std=c++0x -fPIC -pthread
+#CXXFLAGS=-g -std=c++0x -fPIC -pthread
+LDFLAGS= -std=c++0x -pthread
 LINKER=g++
 
 all: libTBBFrameworkCore.so libTBBTestModules.so TBBDemo
@@ -28,12 +31,16 @@ TBBDemo: libTBBFrameworkCore.so libTBBTestModules.so main.o
 
 fc_objects := $(patsubst %.cpp,%.o,$(wildcard TBBFrameworkCore/*.cpp))
 tm_objects := $(patsubst %.cpp,%.o,$(wildcard TBBTestModules/*.cpp))
+unittest_objects := $(patsubst %.cpp,%.o,$(wildcard TBBUnitTests/*.cpp))
 
 libTBBFrameworkCore.so: $(fc_objects)
 	$(LINKER) $+ $(TBB_LIB) -shared -o $@
 
 libTBBTestModules.so: $(tm_objects) ../BusyWaitCalibration/busyWait.o ../BusyWaitCalibration/busy_wait_scale_factor.o libTBBFrameworkCore.so
 	$(LINKER) $+ -shared -o $@
+
+TBBRunUnitTests: $(unittest_objects) libTBBFrameworkCore.so
+	$(LINKER) $+ $(LDFLAGS) $(TBB_LIB) $(CPPUNIT_LIB) -o $@
 
 clean:
 	rm -f *.o */*.o *.so
