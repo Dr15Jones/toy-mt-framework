@@ -15,6 +15,7 @@
 #include "Module.h"
 #include "Queues.h"
 #include "Event.h"
+#include "WaitableTask.h"
 
 using namespace demo;
 
@@ -38,7 +39,7 @@ PrefetchAndWorkWrapper::runQueue() const {
 
 namespace demo {
    namespace pnw {
-      class DoWorkTask : public tbb::task {
+      class DoWorkTask : public WaitableTask {
       public:
          DoWorkTask(PrefetchAndWorkWrapper* iWrapper):
          m_wrapper(iWrapper) {}
@@ -54,7 +55,7 @@ namespace demo {
          PrefetchAndWorkWrapper* m_wrapper;
       };
    
-      class NonThreadSafeDoWorkTask : public tbb::task {
+      class NonThreadSafeDoWorkTask : public WaitableTask {
       public:
          NonThreadSafeDoWorkTask(PrefetchAndWorkWrapper* iWrapper):
          m_wrapper(iWrapper) {}

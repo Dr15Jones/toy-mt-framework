@@ -15,6 +15,7 @@
 #include "Queues.h"
 #include "Event.h"
 #include "SerialTaskQueue.h"
+#include "WaitableTask.h"
 
 using namespace demo;
 
@@ -67,7 +68,7 @@ ModuleWrapper::~ModuleWrapper()
 }
 
 void 
-ModuleWrapper::prefetchAsync(tbb::task* iPrefetchDoneTask)
+ModuleWrapper::prefetchAsync(WaitableTask* iPrefetchDoneTask)
 {
   //NOTE: we must guarantee that we've entered the group before leaving
   // this routine OR that the group has already been entered by another thread

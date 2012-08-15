@@ -83,7 +83,7 @@ ProducerWrapper::reset()
 }
 
 void
-ProducerWrapper::doProduceAsync(tbb::task* iCallTaskWhenDone)
+ProducerWrapper::doProduceAsync(WaitableTask* iCallTaskWhenDone)
 {
   //if it has already run or we are not the first task
   // to request the Producer to be run then just return the

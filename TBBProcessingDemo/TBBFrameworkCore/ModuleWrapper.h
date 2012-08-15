@@ -15,6 +15,7 @@
 namespace demo {
   class Module;
   class Event;
+  class WaitableTask;
 
   class ModuleWrapper {
   public:
@@ -34,7 +35,7 @@ namespace demo {
       m_requestedPrefetch.clear();
     }
 
-    void prefetchAsync(tbb::task* iPostPrefetchTask);
+    void prefetchAsync(WaitableTask* iPostPrefetchTask);
 
     SerialTaskQueue* runQueue() const {
       return m_runQueue.get();

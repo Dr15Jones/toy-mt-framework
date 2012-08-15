@@ -12,6 +12,7 @@
 #include "Module.h"
 #include "Getter.h"
 #include "Event.h"
+#include "WaitableTask.h"
 
 using namespace demo;
 
@@ -20,7 +21,7 @@ Module::~Module()
 
 
 void
-Module::prefetchAsync(const Event& iEvent, tbb::task* iTask)
+Module::prefetchAsync(const Event& iEvent, WaitableTask* iTask)
 {
   assert(0!=iTask);
   //need to be sure that ref count isn't set to 0 immediately

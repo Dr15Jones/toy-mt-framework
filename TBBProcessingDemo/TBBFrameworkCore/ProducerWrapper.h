@@ -12,12 +12,13 @@
 #include <boost/shared_ptr.hpp>
 #include "ModuleWrapper.h"
 #include "PrefetchAndWorkWrapper.h"
-#include "WaitingList.h"
+#include "WaitingTaskList.h"
 
 namespace demo {
   
   class Producer;
   class Event;
+  class WaitableTask;
   
   class ProducerWrapper : private ModuleWrapper,PrefetchAndWorkWrapper {
   public:
@@ -27,7 +28,7 @@ namespace demo {
     ~ProducerWrapper();
     
     ///Pass task to be called when data has been produced
-    void doProduceAsync(tbb::task* iCallTaskWhenDone);
+    void doProduceAsync(WaitableTask* iCallTaskWhenDone);
 
     void reset();
 
@@ -40,7 +41,7 @@ namespace demo {
     ProducerWrapper& operator=(const ProducerWrapper&);
     
     boost::shared_ptr<Producer> m_producer;
-    WaitingList m_waitingList;
+    WaitingTaskList m_waitingList;
     bool m_wasRun;
 
   };
