@@ -148,20 +148,20 @@ void WaitingTaskList_test::stressTest()
       {
          std::thread makeTasksThread([&waitList,pWaitTask,&called]{
             for(unsigned int i = 0; i<nTasks;++i) {
-               demo::WaitableTask* t = new (tbb::task::allocate_another_child_of(pWaitTask)) TestCalledTask{called};
+               demo::WaitableTask* t = new (tbb::task::allocate_additional_child_of(*pWaitTask)) TestCalledTask{called};
                waitList.add(t);
             }
          
             pWaitTask->decrement_ref_count();
             });
-         boost::shared_ptr<std::thread*>(&makeTasksThread,join_thread);
+         boost::shared_ptr<std::thread>(&makeTasksThread,join_thread);
          
          std::thread doneWaitThread([&waitList,&called,pWaitTask]{
             called=true;
             waitList.doneWaiting();
             pWaitTask->decrement_ref_count();
             });
-         boost::shared_ptr<std::thread*>(&doneWaitThread,join_thread);
+         boost::shared_ptr<std::thread>(&doneWaitThread,join_thread);
       }
       waitTask->wait_for_all();
    }
