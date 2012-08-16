@@ -83,7 +83,7 @@ ProducerWrapper::reset()
 }
 
 void
-ProducerWrapper::doProduceAsync(WaitableTask* iCallTaskWhenDone)
+ProducerWrapper::doProduceAsync(tbb::task* iCallTaskWhenDone)
 {
   //if it has already run or we are not the first task
   // to request the Producer to be run then just return the
@@ -92,11 +92,11 @@ ProducerWrapper::doProduceAsync(WaitableTask* iCallTaskWhenDone)
   // task did the same work) from previous events hanging around when the next
   // event starts. This can happen since we don't wait for ALL tasks to complete
   // we only wait for the results for a task to be available.
-  //std::cout <<"requested to run "<<m_producer->label()<<std::endl;
+  //std::cout <<"     requested to run "<<m_producer->label()<<std::endl;
   //if(m_wasRun or m_requestedToRun.test_and_set()) {
   m_waitingList.add(iCallTaskWhenDone);
   if(m_wasRun) {
-    //std::cout <<"  already run"<<std::endl;
+    //std::cout <<"     "<<m_producer->label() <<"already run"<<std::endl;
     return;
   }
   
@@ -134,7 +134,7 @@ ProducerWrapper::doWork()
     // m_wasRun is never set until after doFilter is run
     __sync_synchronize();
     this->m_wasRun = true;
+    //std::cout <<" ProducerWrapper::doWork finished "<<producer()->label()<<std::endl;
+    m_waitingList.doneWaiting();
   }
-  //--s_numberOfTasks;
-  m_waitingList.doneWaiting();
 }
