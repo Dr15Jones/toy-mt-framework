@@ -142,8 +142,8 @@ void WaitingTaskList_test::stressTest()
    std::atomic<bool> called{false};
    demo::WaitingTaskList waitList;
    
-   unsigned int index = 100;
-   const unsigned int nTasks = 1000;
+   unsigned int index = 1000;
+   const unsigned int nTasks = 10000;
    while(0 != --index) {
       called = false;
       boost::shared_ptr<tbb::task> waitTask{new (tbb::task::allocate_root()) tbb::empty_task{},
@@ -154,7 +154,7 @@ void WaitingTaskList_test::stressTest()
       {
          std::thread makeTasksThread([&waitList,pWaitTask,&called]{
             for(unsigned int i = 0; i<nTasks;++i) {
-               demo::WaitableTask* t = new (tbb::task::allocate_additional_child_of(*pWaitTask)) TestCalledTask{called};
+               auto t = new (tbb::task::allocate_additional_child_of(*pWaitTask)) TestCalledTask{called};
                waitList.add(t);
             }
          
