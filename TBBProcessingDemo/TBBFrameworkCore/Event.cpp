@@ -16,7 +16,6 @@
 #include "ProducerWrapper.h"
 #include "Queues.h"
 #include "Getter.h"
-#include "WaitableTask.h"
 
 using namespace demo;
 typedef std::map<Event::LabelAndProduct, DataCache > LookupMap;
@@ -57,7 +56,7 @@ Event::get(const std::string& iModule,
    LookupMap::const_iterator it = m_lookupMap.find(LabelAndProduct(iModule.c_str(),iProduct.c_str()));
    assert(it != m_lookupMap.end());
    if(!it->second.wasCached()) {
-      demo::EmptyWaitableTask* doneTask = new (tbb::task::allocate_root()) demo::EmptyWaitableTask();
+      tbb::empty_task* doneTask = new (tbb::task::allocate_root()) tbb::empty_task();
       //Ref count needs to be 1 since WaitList will increment and decrement it again
       // doneTask->wait_for_all() waits for the task ref count to drop back to 1
       doneTask->increment_ref_count();
@@ -92,31 +91,28 @@ Event::get(const Getter* iGetter) const
 
 //asynchronously get data
 void
-Event::getAsyncImpl(Getter* iGetter, WaitableTask* iTaskDoneWithGet) const 
+Event::getAsyncImpl(Getter* iGetter, tbb::task* iTaskDoneWithGet) const 
 {
    //PROBLEM??: Is map find thread safe?  It looks like if I call find via two different threads
    // that I sometimes get the answer for the first thread when I'm running the second thread
    // this causes the wrong producer to be called
    //printf("   Event::getAsyncImp look for %s\n",iGetter->label().c_str());
    LookupMap::const_iterator it = m_lookupMap.find(LabelAndProduct(iGetter->label().c_str(),iGetter->product().c_str()));
-   //printf("    found: %s %p\n",it->first.first.c_str(),it->second.first);
+   //printf("    found: %s %s\n",it->first.m_label,it->first.m_product);
    if(it==m_lookupMap.end()) {
      printf("   Event::getAsyncImp failed to find %s '%s'\n",iGetter->label().c_str(),iGetter->product().c_str());
      assert(it != m_lookupMap.end());
      exit(1);
    }
    const DataCache* found = &(it->second);
-   if(!found->wasCached()) {
-      //printf("     getGroup: %s\n",found->first->label().c_str());
-      found->producer()->doProduceAsync(iTaskDoneWithGet);
-   } else {
-      //printf("     iGetter->set from already run producer %s %i\n",found->first->label().c_str(),found->second);
-      //iGetter->set(found->value());
-   }
+   //printf("     doProduceAsync: %s\n",iGetter->label().c_str());
+   //NOTE: this will not rerun the producer if it has already been run AND it will
+   // properly run iTaskDoneWithGet in both cases (producer run or not run yet)
+   found->producer()->doProduceAsync(iTaskDoneWithGet);
 }
 
 void 
-Event::getAsync(Getter* iGetter, WaitableTask* iTaskDoneWithGet) const
+Event::getAsync(Getter* iGetter, tbb::task* iTaskDoneWithGet) const
 {
   getAsyncImpl(iGetter, iTaskDoneWithGet);
 }
@@ -169,7 +165,7 @@ namespace demo {
          int returnValue = m_event->get(iModule,iProduct);
          if(!m_isThreadSafe) {
            //we must acquire the 'lock' on the non-thread-safe queue again
-           EmptyWaitableTask* doneTask = new (tbb::task::allocate_root()) EmptyWaitableTask();
+           tbb::empty_task* doneTask = new (tbb::task::allocate_root()) tbb::empty_task();
            //Ref count needs to be w since task willdecrement it again once we've aquired
            // the lock and  doneTask->wait_for_all() waits for the task ref count
            // to drop back to 1
@@ -191,7 +187,7 @@ namespace demo {
      
       //asynchronously get data. The group will be incremented and will not be 
       // decremented until the attempt to get the data is finished
-      void Event::getAsync(Getter* iGetter, WaitableTask* iTask) const {
+      void Event::getAsync(Getter* iGetter, tbb::task* iTask) const {
          m_event->getAsync(iGetter, iTask);
       }      
    }
