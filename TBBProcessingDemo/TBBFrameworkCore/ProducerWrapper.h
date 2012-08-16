@@ -28,7 +28,7 @@ namespace demo {
     ~ProducerWrapper();
     
     ///Pass task to be called when data has been produced
-    void doProduceAsync(WaitableTask* iCallTaskWhenDone);
+    void doProduceAsync(tbb::task* iCallTaskWhenDone);
 
     void reset();
 

@@ -8,14 +8,13 @@
 
 #include <iostream>
 #include <sstream>
-
+#include "tbb/task.h"
 
 #include "PrefetchAndWorkWrapper.h"
 #include "ModuleWrapper.h"
 #include "Module.h"
 #include "Queues.h"
 #include "Event.h"
-#include "WaitableTask.h"
 
 using namespace demo;
 
@@ -39,7 +38,7 @@ PrefetchAndWorkWrapper::runQueue() const {
 
 namespace demo {
    namespace pnw {
-      class DoWorkTask : public WaitableTask {
+      class DoWorkTask : public tbb::task {
       public:
          DoWorkTask(PrefetchAndWorkWrapper* iWrapper):
          m_wrapper(iWrapper) {}
@@ -55,7 +54,7 @@ namespace demo {
          PrefetchAndWorkWrapper* m_wrapper;
       };
    
-      class NonThreadSafeDoWorkTask : public WaitableTask {
+      class NonThreadSafeDoWorkTask : public tbb::task {
       public:
          NonThreadSafeDoWorkTask(PrefetchAndWorkWrapper* iWrapper):
          m_wrapper(iWrapper) {}

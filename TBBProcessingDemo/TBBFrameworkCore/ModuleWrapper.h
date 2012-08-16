@@ -35,7 +35,7 @@ namespace demo {
       m_requestedPrefetch.clear();
     }
 
-    void prefetchAsync(WaitableTask* iPostPrefetchTask);
+    void prefetchAsync(tbb::task* iPostPrefetchTask);
 
     SerialTaskQueue* runQueue() const {
       return m_runQueue.get();
