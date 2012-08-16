@@ -317,12 +317,6 @@ void Event_test::simultaneousThreadUnsafeOneEvent()
   CPPUNIT_ASSERT(wasChanged==false);
 }
 
-static void get_task(void* iContext, size_t iIndex) {
-  demo::Event** pEvents = reinterpret_cast<demo::Event**>(iContext);
-  pEvents[iIndex]->get("access",""); 
-
-}
-
 void Event_test::simultaneousBetweenInstancesTwoEvents()
 {
   ThreadSafeCounter count("gov.fnal.counter");
@@ -366,7 +360,6 @@ void Event_test::simultaneousBetweenModulesTwoEvents()
   tbb::parallel_for(0,2,[events](int iIndex) {
      events[iIndex]->get("access","");
   });
-  //dispatch_apply_f(2, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, NULL), pEvents,get_task);
   CPPUNIT_ASSERT(count.value()==2);
   CPPUNIT_ASSERT(wasChanged==false);
 }
@@ -390,7 +383,6 @@ void Event_test::simultaneousThreadUnsafeTwoEvents()
   tbb::parallel_for(0,2,[events](int iIndex) {
      events[iIndex]->get("access","");
   });
-  //dispatch_apply_f(2, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, NULL), const_cast<demo::Event**>(pEvents),get_task);
   CPPUNIT_ASSERT(count.value()==2);
   CPPUNIT_ASSERT(wasChanged==false);
 }
