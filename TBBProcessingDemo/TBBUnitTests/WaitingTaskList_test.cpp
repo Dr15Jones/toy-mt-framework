@@ -13,9 +13,13 @@
 #include <memory>
 #include <atomic>
 #include <thread>
-#include "WaitingTaskList.h"
-#include "WaitableTask.h"
+#include "tbb/task.h"
 #include "boost/shared_ptr.hpp"
+#include "WaitingTaskList.h"
+
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)
+#define CXX_THREAD_AVAILABLE
+#endif
 
 class WaitingTaskList_test : public CppUnit::TestFixture {
   CPPUNIT_TEST_SUITE(WaitingTaskList_test);
@@ -33,7 +37,7 @@ public:
 };
 
 namespace  {
-   class TestCalledTask : public demo::WaitableTask {
+   class TestCalledTask : public tbb::task {
    public:
       TestCalledTask(std::atomic<bool>& iCalled): m_called(iCalled) {}
 
@@ -46,7 +50,7 @@ namespace  {
       std::atomic<bool>& m_called;
    };
    
-   class TestValueSetTask : public demo::WaitableTask {
+   class TestValueSetTask : public tbb::task {
    public:
       TestValueSetTask(std::atomic<bool>& iValue): m_value(iValue) {}
          tbb::task* execute() {
@@ -70,7 +74,7 @@ void WaitingTaskList_test::addThenDone()
                                             [](tbb::task* iTask){tbb::task::destroy(*iTask);} };
       waitTask->set_ref_count(2);
       //NOTE: allocate_child does NOT increment the ref_count of waitTask!
-      demo::WaitableTask* t = new (waitTask->allocate_child()) TestCalledTask{called};
+      tbb::task* t = new (waitTask->allocate_child()) TestCalledTask{called};
    
       waitList.add(t);
 
@@ -83,6 +87,7 @@ void WaitingTaskList_test::addThenDone()
       __sync_synchronize();
       CPPUNIT_ASSERT(true==called);
    }
+   
    waitList.reset();
    called = false;
    
@@ -91,7 +96,7 @@ void WaitingTaskList_test::addThenDone()
                                             [](tbb::task* iTask){tbb::task::destroy(*iTask);} };
       waitTask->set_ref_count(2);
    
-      demo::WaitableTask* t = new (waitTask->allocate_child()) TestCalledTask{called};
+      tbb::task* t = new (waitTask->allocate_child()) TestCalledTask{called};
    
       waitList.add(t);
 
@@ -102,20 +107,18 @@ void WaitingTaskList_test::addThenDone()
       waitTask->wait_for_all();
       CPPUNIT_ASSERT(true==called);
    }
-   
 }
 
 void WaitingTaskList_test::doneThenAdd()
 {
    std::atomic<bool> called{false};
-   
    demo::WaitingTaskList waitList;
    {
       boost::shared_ptr<tbb::task> waitTask{new (tbb::task::allocate_root()) tbb::empty_task{},
                                             [](tbb::task* iTask){tbb::task::destroy(*iTask);} };
       waitTask->set_ref_count(2);
    
-      demo::WaitableTask* t = new (waitTask->allocate_child()) TestCalledTask{called};
+      tbb::task* t = new (waitTask->allocate_child()) TestCalledTask{called};
 
       waitList.doneWaiting();
    
@@ -126,13 +129,16 @@ void WaitingTaskList_test::doneThenAdd()
 }
 
 namespace {
+#if defined(CXX_THREAD_AVAILABLE)
    void join_thread(std::thread* iThread){ 
       if(iThread->joinable()){iThread->join();}
    }
+#endif
 }
 
 void WaitingTaskList_test::stressTest()
 {
+#if defined(CXX_THREAD_AVAILABLE)
    std::atomic<bool> called{false};
    demo::WaitingTaskList waitList;
    
@@ -165,6 +171,7 @@ void WaitingTaskList_test::stressTest()
       }
       waitTask->wait_for_all();
    }
+#endif
 }
 
 
