@@ -49,6 +49,28 @@ namespace demo {
            pTask->setQueue(this);           
            pushTask(pTask);
         }
+        
+        template<typename T>
+        void pushAndWait(const T& iAction) {
+           tbb::empty_task* waitTask = new (tbb::task::allocate_root()) tbb::empty_task;
+           waitTask->set_ref_count(2);
+           QueuedTask<T>* pTask{ new (waitTask->allocate_child()) QueuedTask<T>{iAction} };
+           pTask->setQueue(this);           
+           auto nextTask = pushAndGetNextTask(pTask);
+           if(nextTask) {
+              if(nextTask == pTask) {
+                 //spawn and wait for all requires the task to have its parent set
+                 waitTask->spawn_and_wait_for_all(*nextTask);
+              } else {
+                 tbb::task::spawn(*nextTask);
+                 waitTask->wait_for_all();
+              }
+           } else {
+              //a task must already be running in this queue
+              waitTask->wait_for_all();              
+           }
+           tbb::task::destroy(*waitTask);
+        }
 
         template<typename T>
         tbb::task* pushAndGetNextTaskToRun(const T& iAction) {
@@ -72,7 +94,7 @@ namespace demo {
    tbb::task* 
    TaskQueueBase::QueuedTask<T>::execute() {
      try {
-       m_action();
+       this->m_action();
      } catch(...) {}
      return this->finishedTask();
    }
