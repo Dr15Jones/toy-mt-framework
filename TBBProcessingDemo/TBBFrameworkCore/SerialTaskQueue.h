@@ -12,13 +12,14 @@
 #include <atomic>
 
 #include "tbb/task.h"
-#include "tbb/concurrent_queue.h"
 
 #include "TaskQueueBase.h"
 namespace demo {
    class SerialTaskQueue : public TaskQueueBase {
    public:
         SerialTaskQueue():
+        m_head{0},
+        m_tail{0},
         m_taskChosen{ATOMIC_FLAG_INIT},
         m_pauseCount{0}
         {  }
@@ -38,7 +39,8 @@ namespace demo {
         //returns nullptr if a task is already being processed
         TaskBase* pickNextTask();
 
-        tbb::concurrent_queue<TaskBase*> m_tasks;
+        std::atomic<TaskBase*> m_head;
+        std::atomic<TaskBase*> m_tail;
         std::atomic_flag m_taskChosen;
         std::atomic<unsigned long> m_pauseCount;
    };
