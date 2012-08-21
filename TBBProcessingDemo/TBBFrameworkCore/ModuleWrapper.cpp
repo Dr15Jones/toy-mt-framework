@@ -21,7 +21,7 @@ using namespace demo;
 ModuleWrapper::ModuleWrapper(Module* iModule, Event* iEvent):
 m_module(iModule),
 m_event(iEvent),
-m_runQueue( new SerialTaskQueue{}),
+m_runQueue( m_module->threadType() == kThreadSafeBetweenInstances? static_cast<SerialTaskQueue*>(nullptr) : new SerialTaskQueue{}),
 m_requestedPrefetch{ATOMIC_FLAG_INIT}
 {
 }
@@ -32,11 +32,9 @@ m_module(iOther.m_module),
 m_event(iEvent),
 m_requestedPrefetch{ATOMIC_FLAG_INIT}
 {
-  if(m_module->threadType() == kThreadSafeBetweenInstances) {
-    //the same instance can be called reentrantly so each Schedule can have
-    // its own queue for each instance rather than having to share one queue
-    m_runQueue = boost::shared_ptr<SerialTaskQueue>(new SerialTaskQueue{});
-  } else {
+  if(m_module->threadType() != kThreadSafeBetweenInstances) {
+    //the same instance can not be called reentrantly so each Schedule must
+    // have its own queue for each instance
     m_runQueue=iOther.m_runQueue;
   }
 }

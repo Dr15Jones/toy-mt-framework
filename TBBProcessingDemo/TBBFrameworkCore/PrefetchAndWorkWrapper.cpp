@@ -45,9 +45,15 @@ namespace demo {
       
          tbb::task* execute() {
             auto wrapper = this->m_wrapper;
-            auto nextTask = wrapper->runQueue()->pushAndGetNextTaskToRun([wrapper]{
+            auto queue = wrapper->runQueue();
+            tbb::task* nextTask=0;
+            if(queue) {
+               nextTask = wrapper->runQueue()->pushAndGetNextTaskToRun([wrapper]{
+                  wrapper->doWork();
+                  });
+            } else {
                wrapper->doWork();
-               });
+            }
             return nextTask;
          }
       private:
