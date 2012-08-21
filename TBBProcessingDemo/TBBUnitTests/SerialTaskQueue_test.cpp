@@ -175,31 +175,33 @@ void SerialTaskQueue_test::stressTest()
       
       std::atomic<bool> waitToStart{true};
       {
-         std::thread pushThread([&queue,&waitToStart,pWaitTask,&called]{
-            while(waitToStart);
+         std::thread pushThread([&queue,&waitToStart,pWaitTask,&count]{
+	    //gcc 4.7 doesn't preserve the 'atomic' nature of waitToStart in the loop
+	    while(waitToStart.load()) {__sync_synchronize();};
             for(unsigned int i = 0; i<nTasks;++i) {
                pWaitTask->increment_ref_count();
-               queue.push([i,&called,pWaitTask] {
+               queue.push([i,&count,pWaitTask] {
                   ++count;
-                  pWaitTask->decrement_wait_count();
+                  pWaitTask->decrement_ref_count();
                });
             }
          
             pWaitTask->decrement_ref_count();
             });
-         boost::shared_ptr<std::thread>(&makeTasksThread,join_thread);
          
          waitToStart=false;
          for(unsigned int i=0; i<nTasks;++i) {
             pWaitTask->increment_ref_count();
-            queue.push([i,&called,pWaitTask] {
+            queue.push([i,&count,pWaitTask] {
                ++count;
-               pWaitTask->decrement_wait_count();
+               pWaitTask->decrement_ref_count();
             });
          }
          pWaitTask->decrement_ref_count();
+         boost::shared_ptr<std::thread>(&pushThread,join_thread);
       }
       waitTask->wait_for_all();
+
       CPPUNIT_ASSERT(2*nTasks==count);
    }
 #endif
