@@ -9,31 +9,20 @@
 #ifndef TBBProcessingDemo_TaskQueueBase_h
 #define TBBProcessingDemo_TaskQueueBase_h
 
-#include <atomic>
 #include "tbb/task.h"
 namespace demo {
    class TaskQueueBase {
    protected:
       class TaskBase : public tbb::task {
          friend class TaskQueueBase;
-      public:
          TaskBase(): m_queue(0) {}
 
-         void setNext(TaskBase* iTask) {
-            m_next = iTask;
-         }
-
-         TaskBase* next() {
-            return m_next;
-         }
-         
       protected:
          tbb::task* finishedTask();
       private:
          void setQueue(TaskQueueBase* iQueue) { m_queue = iQueue;}
 
          TaskQueueBase* m_queue;
-         std::atomic<TaskBase*> m_next;
       };
    
       template< typename T>
