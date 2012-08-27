@@ -109,8 +109,7 @@ ProducerWrapper::doProduceAsync(tbb::task* iCallTaskWhenDone)
   // ask to prefetch once now
   
   //++s_numberOfTasks;
-  auto pThis = this;
-  s_thread_safe_queue->push([pThis]{pThis->doProduceAsyncImpl();});
+  doProduceAsyncImpl();
   return;
 }
 
