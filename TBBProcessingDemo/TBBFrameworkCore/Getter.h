@@ -12,9 +12,6 @@
 #include <string>
 
 namespace demo {
-   typedef std::string DataKey;
-   class Event;
-   
    class Getter {
    public:
       Getter(const std::string& iLabel,
