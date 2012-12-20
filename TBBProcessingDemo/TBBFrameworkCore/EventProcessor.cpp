@@ -43,6 +43,7 @@ EventProcessor::addPath(const std::string& iName,
                         const std::vector<std::string>& iModules) {
   m_schedules[0].m_schedule->addPath(iModules);
 }
+
 void 
 EventProcessor::addProducer(Producer* iProd) {
   iProd->setID(m_nextModuleID);
@@ -60,13 +61,46 @@ EventProcessor::addFilter(Filter* iFilter) {
 }
 
 static
-bool recursivelyCheckMightGetItems(Module* iModule, std::map<std::string,Producer*> const& iProds){
+bool alternateDependencyPaths(unsigned int iParentID,
+                              unsigned int iChildID,
+                              std::map<unsigned int, std::vector<unsigned int>> const& iDeps) {
+   auto itFound = iDeps.find(iChildID);
+   if(itFound!=iDeps.end()) {
+     for(auto& parent: itFound->second ) {
+       if(parent != iParentID) {
+         if(alternateDependencyPaths(iParentID,parent,iDeps)) {
+           return true;
+         }
+       }
+     }
+   } else {
+     return true;
+   }
+   return false;
+}
+
+static
+bool recursivelyCheckMightGetItems(unsigned int iStartID, 
+                                   Module* iModule, 
+                                   std::map<std::string,Producer*> const& iProds,
+                                   std::map<unsigned int,std::vector<unsigned int>> const& iDeps){
   if(iModule->hasMightGetItems()) {
-    return true;
+    //search back up the inheritance hierarchy. If the only way to reach iModule is to go through iStartID
+    // then we can keep this as 'mightGet'.
+    if(alternateDependencyPaths(iStartID,iModule->id(),iDeps)) {
+      return true;
+    } else {
+      for(auto const& getter: iModule->mightGet()) {
+        auto it = iProds.find(getter.label());
+        if(recursivelyCheckMightGetItems(iStartID,it->second,iProds,iDeps)) {
+          return true;
+        }        
+      }
+    }
   }
   for(auto const& getter: iModule->prefetchItems()) {
     auto it = iProds.find(getter.label());
-    if(recursivelyCheckMightGetItems(it->second,iProds)) {
+    if(recursivelyCheckMightGetItems(iStartID,it->second,iProds,iDeps)) {
       return true;
     }
   }
@@ -74,12 +108,14 @@ bool recursivelyCheckMightGetItems(Module* iModule, std::map<std::string,Produce
 }
 
 static
-void correctPossibleDeadlocks(Module* iModule, std::map<std::string,Producer*> const& iProds) {
+void correctPossibleDeadlocks(Module* iModule, 
+                              std::map<std::string,Producer*> const& iProds,
+                              std::map<unsigned int,std::vector<unsigned int>> const& iDeps) {
   if(iModule->hasMightGetItems()) {
     for(auto const& getter: iModule->mightGet()) {
       auto it = iProds.find(getter.label());
       assert(it != iProds.end());
-      if(recursivelyCheckMightGetItems(it->second,iProds)) {
+      if(recursivelyCheckMightGetItems(iModule->id(), it->second,iProds,iDeps)) {
         std::cout <<"Avoid deadlock: "<<iModule->label()<<" changed to prefetch "<<getter.label()<<std::endl;
         iModule->registerGet(getter.label(),getter.product());
       }
@@ -87,18 +123,42 @@ void correctPossibleDeadlocks(Module* iModule, std::map<std::string,Producer*> c
   }
 }
 
+static
+void addDependencies(Module* iModule, std::map<std::string, Producer*> const& iProds, std::map<unsigned int,std::vector<unsigned int>>& iDeps) {
+  for(auto const& getter: iModule->prefetchItems()) {
+    auto it = iProds.find(getter.label());
+    iDeps[it->second->id()].push_back(iModule->id());
+  }
+  for(auto const& getter: iModule->mightGet()) {
+    auto it = iProds.find(getter.label());
+    iDeps[it->second->id()].push_back(iModule->id());
+  }
+}
+
+
+
 void 
 EventProcessor::finishSetup() {
   //Look for cases where a 'might get' could lead to a deadlock. In those
   // cases convert the 'might get' to a 'prefetch'.
   
+  std::map<unsigned int, std::vector<unsigned int>> moduleDependencies;
   for(auto f: m_filters) {
-    correctPossibleDeadlocks(f,m_producers);
+    addDependencies(f,m_producers,moduleDependencies);
+  }
+
+  for(auto labelProd: m_producers) {
+    addDependencies(labelProd.second,m_producers,moduleDependencies);
+  }
+  
+  
+  for(auto f: m_filters) {
+    correctPossibleDeadlocks(f,m_producers,moduleDependencies);
   }
   m_filters.clear();
 
   for(auto const& labelProd: m_producers) {
-    correctPossibleDeadlocks(labelProd.second,m_producers);
+    correctPossibleDeadlocks(labelProd.second,m_producers,moduleDependencies);
   }
   m_producers.clear();
 }
