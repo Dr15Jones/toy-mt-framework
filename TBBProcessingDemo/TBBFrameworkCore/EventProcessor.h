@@ -9,6 +9,7 @@
 #ifndef DispatchProcessingDemo_EventProcessor_h
 #define DispatchProcessingDemo_EventProcessor_h
 #include <vector>
+#include <map>
 #include "Schedule.h"
 #include <boost/shared_ptr.hpp>
 #include <tbb/task.h>
@@ -34,6 +35,8 @@ namespace demo {
     void addFilter(Filter* iFilter);
     void processAll(unsigned int iNumConcurrentEvents);
     
+    void finishSetup();
+    
     class LoopContext {
        friend class EventProcessor;
     public: 
@@ -54,6 +57,9 @@ namespace demo {
     boost::shared_ptr<Source> m_source;
     tbb::task* m_eventLoopWaitTask;
     std::vector<LoopContext> m_schedules;
+    std::map<std::string,Producer*> m_producers;
+    std::vector<Filter*> m_filters;
+    unsigned int m_nextModuleID;
     bool m_fatalJobErrorOccured;    
   };
 

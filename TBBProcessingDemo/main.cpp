@@ -51,8 +51,8 @@ int main (int argc, char * const argv[]) {
   
   boost::property_tree::ptree& filters=pConfig.get_child("process.filters");
   for(const boost::property_tree::ptree::value_type& f : filters) {
-    std::cout << f.second.get<std::string>("@type")<<std::endl;
     std::auto_ptr<demo::Filter> pF = demo::FactoryManager<demo::Filter>::create(f.second.get<std::string>("@type"),f.second);
+    std::cout << f.second.get<std::string>("@type")<<" "<<f.second.get<std::string>("@label")<<" "<<std::hex<<pF.get()<<std::dec<<std::endl;
     if(pF.get() != 0) {
       ep.addFilter(pF.release());
     } else {
@@ -63,8 +63,8 @@ int main (int argc, char * const argv[]) {
 
   boost::property_tree::ptree& producers=pConfig.get_child("process.producers");
   for(const boost::property_tree::ptree::value_type& p : producers) {
-    std::cout << p.second.get<std::string>("@type")<<std::endl;
     std::auto_ptr<demo::Producer> pP = demo::FactoryManager<demo::Producer>::create(p.second.get<std::string>("@type"),p.second);
+    std::cout << p.second.get<std::string>("@type")<<" "<<p.second.get<std::string>("@label")<<" "<<std::hex<<pP.get()<<std::dec<<std::endl;
     if(pP.get() != 0) {
       ep.addProducer(pP.release());
     } else {
@@ -85,6 +85,7 @@ int main (int argc, char * const argv[]) {
     ep.addPath(n,modules);
   }
 
+  ep.finishSetup();
   {
     struct timeval startCPUTime;
     

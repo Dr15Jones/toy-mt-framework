@@ -42,3 +42,10 @@ Module::registerGet(const std::string& iLabel, const std::string& iProduct)
    m_getters.push_back(g);
    return &(m_getters.back());
 }
+
+void 
+Module::registerMightGet(const std::string& iLabel, const std::string& iProduct)
+{
+  Getter g(iLabel,iProduct);
+  m_mightGetters.push_back(g);
+}

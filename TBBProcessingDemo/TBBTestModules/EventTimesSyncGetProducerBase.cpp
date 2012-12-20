@@ -25,6 +25,7 @@ namespace demo {
     
     for(const auto& v: iConfig.get_child("toGet")) {
       m_toGet.push_back(v.second.get<std::string>("label"));
+      registerMightGet(m_toGet.back(),s_blank);
     }
     m_eventTimes.reserve(iConfig.get_child("eventTimes").size());
     for(const auto& v: iConfig.get_child("eventTimes")) {

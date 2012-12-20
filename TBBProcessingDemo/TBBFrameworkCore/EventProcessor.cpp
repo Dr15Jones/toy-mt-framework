@@ -12,12 +12,15 @@
 #include "Event.h"
 #include "Path.h"
 #include "Source.h"
+#include "Producer.h"
+#include "Filter.h"
 
 using namespace demo;
 
 EventProcessor::EventProcessor():
   m_source(),
   m_eventLoopWaitTask(new (tbb::task::allocate_root()) tbb::empty_task{}),
+  m_nextModuleID(0),
   m_fatalJobErrorOccured(false)
   {
     m_eventLoopWaitTask->increment_ref_count();
@@ -42,13 +45,64 @@ EventProcessor::addPath(const std::string& iName,
 }
 void 
 EventProcessor::addProducer(Producer* iProd) {
+  iProd->setID(m_nextModuleID);
+  ++m_nextModuleID;
+  m_producers[iProd->label()]=iProd;
   m_schedules[0].m_schedule->event()->addProducer(iProd);
 }
 
 void
 EventProcessor::addFilter(Filter* iFilter) {
+  iFilter->setID(m_nextModuleID);
+  ++m_nextModuleID;
+  m_filters.push_back(iFilter);
   m_schedules[0].m_schedule->addFilter(iFilter);
 }
+
+static
+bool recursivelyCheckMightGetItems(Module* iModule, std::map<std::string,Producer*> const& iProds){
+  if(iModule->hasMightGetItems()) {
+    return true;
+  }
+  for(auto const& getter: iModule->prefetchItems()) {
+    auto it = iProds.find(getter.label());
+    if(recursivelyCheckMightGetItems(it->second,iProds)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static
+void correctPossibleDeadlocks(Module* iModule, std::map<std::string,Producer*> const& iProds) {
+  if(iModule->hasMightGetItems()) {
+    for(auto const& getter: iModule->mightGet()) {
+      auto it = iProds.find(getter.label());
+      assert(it != iProds.end());
+      if(recursivelyCheckMightGetItems(it->second,iProds)) {
+        std::cout <<"Avoid deadlock: "<<iModule->label()<<" changed to prefetch "<<getter.label()<<std::endl;
+        iModule->registerGet(getter.label(),getter.product());
+      }
+    }
+  }
+}
+
+void 
+EventProcessor::finishSetup() {
+  //Look for cases where a 'might get' could lead to a deadlock. In those
+  // cases convert the 'might get' to a 'prefetch'.
+  
+  for(auto f: m_filters) {
+    correctPossibleDeadlocks(f,m_producers);
+  }
+  m_filters.clear();
+
+  for(auto const& labelProd: m_producers) {
+    correctPossibleDeadlocks(labelProd.second,m_producers);
+  }
+  m_producers.clear();
+}
+
 
 void
 ScheduleFilteringCallback::operator()(bool iShouldContinue) const {
