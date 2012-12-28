@@ -80,47 +80,71 @@ bool alternateDependencyPaths(unsigned int iParentID,
 }
 
 static
-bool recursivelyCheckMightGetItems(unsigned int iStartID, 
+void recursivelyCheckGetItems(unsigned int iStartID, 
                                    Module* iModule, 
                                    std::map<std::string,Producer*> const& iProds,
-                                   std::map<unsigned int,std::vector<unsigned int>> const& iDeps){
-  if(iModule->hasMightGetItems()) {
-    //search back up the inheritance hierarchy. If the only way to reach iModule is to go through iStartID
-    // then we can keep this as 'mightGet'.
-    if(alternateDependencyPaths(iStartID,iModule->id(),iDeps)) {
-      return true;
-    } else {
-      for(auto const& getter: iModule->mightGet()) {
-        auto it = iProds.find(getter.label());
-        if(recursivelyCheckMightGetItems(iStartID,it->second,iProds,iDeps)) {
-          return true;
-        }        
-      }
-    }
+                                   std::set<unsigned int> const& iAlreadyPrefetched,
+                                   std::map<unsigned int,std::vector<unsigned int>> const& iDeps,
+                                   std::set<unsigned int>& oToCheck){
+  //Items with no dependencies in the demo represent reading from storage. Storage is always OK
+  if(iModule->mightGet().empty() and iModule->prefetchItems().empty()) { return; }
+  
+  if(oToCheck.find(iModule->id())!=oToCheck.end()) {
+     //alread have it so do not have to probe further
+     return;
+  }
+  //search back up the inheritance hierarchy. If the only way to reach iModule is to go through iStartID
+  // then we can keep this as 'mightGet'.
+  if(iAlreadyPrefetched.find(iModule->id())==iAlreadyPrefetched.end() and alternateDependencyPaths(iStartID,iModule->id(),iDeps)) {
+     std::cout <<"Avoid deadlock: "<<iStartID<<" will look for "<<iModule->label()<<std::endl;
+
+     oToCheck.insert(iModule->id());
+  }
+  for(auto const& getter: iModule->mightGet()) {
+     auto it = iProds.find(getter.label());
+     recursivelyCheckGetItems(iStartID,it->second,iProds,iAlreadyPrefetched,iDeps,oToCheck);        
   }
   for(auto const& getter: iModule->prefetchItems()) {
     auto it = iProds.find(getter.label());
-    if(recursivelyCheckMightGetItems(iStartID,it->second,iProds,iDeps)) {
-      return true;
-    }
+    recursivelyCheckGetItems(iStartID,it->second,iProds,iAlreadyPrefetched,iDeps,oToCheck);
   }
-  return false;
+  return;
+}
+
+static
+void recursivelyCheckPrefetchItems(Module* iModule, 
+                                   std::map<std::string,Producer*> const& iProds,
+                                   std::set<unsigned int>& iDeps){
+  if(iDeps.find(iModule->id())!=iDeps.end()) {
+     return;
+  }
+  if(iModule->hasPrefetchItems()) {
+     for(auto const& getter: iModule->prefetchItems()) {
+        auto it = iProds.find(getter.label());
+        iDeps.insert(it->second->id());
+        recursivelyCheckPrefetchItems(it->second,iProds,iDeps);
+     }
+  }
+  return;
 }
 
 static
 void correctPossibleDeadlocks(Module* iModule, 
                               std::map<std::string,Producer*> const& iProds,
                               std::map<unsigned int,std::vector<unsigned int>> const& iDeps) {
+  std::set<unsigned int> modulesAlreadyPrefetching;
+  recursivelyCheckPrefetchItems(iModule,iProds,modulesAlreadyPrefetching);
+  
+  std::set<unsigned int> modulesToCheck;
   if(iModule->hasMightGetItems()) {
     for(auto const& getter: iModule->mightGet()) {
       auto it = iProds.find(getter.label());
       assert(it != iProds.end());
-      if(recursivelyCheckMightGetItems(iModule->id(), it->second,iProds,iDeps)) {
-        std::cout <<"Avoid deadlock: "<<iModule->label()<<" changed to prefetch "<<getter.label()<<std::endl;
-        iModule->registerGet(getter.label(),getter.product());
-      }
+      recursivelyCheckGetItems(iModule->id(), it->second,iProds,modulesAlreadyPrefetching,iDeps,modulesToCheck);
     }
   }
+  std::vector<unsigned int> toCheck{modulesToCheck.begin(),modulesToCheck.end()};
+  iModule->setDependentModuleToCheck(toCheck);
 }
 
 static

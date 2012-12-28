@@ -35,7 +35,7 @@ static std::string unique_name(const std::string& iString) {
   return os.str();
 }
 
-inline
+
 Producer* 
 ProducerWrapper::producer() const
 {

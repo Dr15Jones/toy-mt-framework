@@ -13,12 +13,11 @@
 #include "ModuleWrapper.h"
 #include "PrefetchAndWorkWrapper.h"
 #include "WaitingTaskList.h"
+#include "Producer.h"
 
 namespace demo {
   
-  class Producer;
   class Event;
-  class WaitableTask;
   
   class ProducerWrapper : private ModuleWrapper,PrefetchAndWorkWrapper {
   public:
@@ -33,6 +32,8 @@ namespace demo {
     void reset();
 
     bool wasRun() const {return m_wasRun;}
+    
+    unsigned int id() const {m_producer->id();}
   private:
     void doProduceAsyncImpl();
     void doWork();

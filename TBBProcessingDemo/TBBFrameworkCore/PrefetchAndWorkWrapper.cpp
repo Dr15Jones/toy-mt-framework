@@ -12,6 +12,7 @@
 
 #include "PrefetchAndWorkWrapper.h"
 #include "ModuleWrapper.h"
+#include "ModuleThreadStack.h"
 #include "Module.h"
 #include "Queues.h"
 #include "Event.h"
@@ -35,6 +36,25 @@ PrefetchAndWorkWrapper::runQueue() const {
   return m_wrapper->runQueue();
 }
 
+static const unsigned int kNoDependenciesReturnCode = 0xFFFFFFFF;
+
+static
+unsigned int checkStackForDependencies(unsigned int iTransitionID,Module const* iModule) {
+   for(auto const& transMod: demo::ModuleThreadStack::stack()) {
+      if(transMod.transitionID == iTransitionID) {
+         if(iModule->isADependentModule(transMod.moduleID)) {
+            return transMod.moduleID;
+         }
+      }
+   }
+   return kNoDependenciesReturnCode;
+}
+
+namespace {
+   //NOTE: the compiler things tbb::task::allocate_root requires a 'this' pointer when called from within a task.
+   // That doesn't work inside my lambda's which are not capturing 'this'. This template function avoids the problem.
+   template <typename T, typename W> T* createTask(W* iWrapper) { return new (tbb::task::allocate_root()) T(iWrapper);}
+}
 
 namespace demo {
    namespace pnw {
@@ -49,10 +69,22 @@ namespace demo {
             tbb::task* nextTask=0;
             if(queue) {
                nextTask = wrapper->runQueue()->pushAndGetNextTaskToRun([wrapper]{
-                  wrapper->doWork();
+                  unsigned int depModule = checkStackForDependencies(wrapper->m_wrapper->event()->transitionID(),wrapper->module_());
+                  if(kNoDependenciesReturnCode!= depModule) {
+                     wrapper->m_wrapper->event()->mustWaitFor(depModule,createTask<pnw::DoWorkTask>(wrapper));
+                  } else {
+                     ModuleThreadStackSentry s(wrapper->m_wrapper->event()->transitionID(), wrapper->module_()->id());
+                     wrapper->doWork();
+                  }
                   });
             } else {
-               wrapper->doWork();
+               unsigned int depModule = checkStackForDependencies(wrapper->m_wrapper->event()->transitionID(),wrapper->module_());
+               if(kNoDependenciesReturnCode!= depModule) {
+                  wrapper->m_wrapper->event()->mustWaitFor(depModule,createTask<pnw::DoWorkTask>(wrapper));
+               } else {
+                  ModuleThreadStackSentry s(wrapper->m_wrapper->event()->transitionID(), wrapper->module_()->id());
+                  wrapper->doWork();
+               }
             }
             return nextTask;
          }
@@ -78,7 +110,13 @@ namespace demo {
                   // data from another thread unsafe module that module can be given the 'lock'
                   // on the thread unsafe queue and run its task.
                   s_thread_safe_queue->push([wrapper]{
-                     wrapper->doWork();
+                     unsigned int depModule = checkStackForDependencies(wrapper->m_wrapper->event()->transitionID(),wrapper->module_());
+                     if(kNoDependenciesReturnCode!= depModule) {
+                        wrapper->m_wrapper->event()->mustWaitFor(depModule,createTask<pnw::NonThreadSafeDoWorkTask>(wrapper));
+                     } else {
+                        ModuleThreadStackSentry s(wrapper->m_wrapper->event()->transitionID(), wrapper->module_()->id());
+                        wrapper->doWork();
+                     }
                      //now that our work is done, we allow other instances use the queues
                      s_non_thread_safe_queue->resume();
                      wrapper->runQueue()->resume();     

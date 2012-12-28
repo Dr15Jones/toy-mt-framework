@@ -8,6 +8,7 @@
  */
 
 #include <iostream>
+#include <algorithm>
 #include "tbb/task.h"
 #include "Module.h"
 #include "Getter.h"
@@ -49,3 +50,16 @@ Module::registerMightGet(const std::string& iLabel, const std::string& iProduct)
   Getter g(iLabel,iProduct);
   m_mightGetters.push_back(g);
 }
+
+void 
+Module::setDependentModuleToCheck(std::vector<unsigned int>& iModuleIDs)
+{
+   m_dependentModulesToCheck.swap(iModuleIDs);
+}
+
+bool 
+Module::isADependentModule(unsigned int iModuleID) const
+{
+   return std::binary_search(m_dependentModulesToCheck.begin(),m_dependentModulesToCheck.end(),iModuleID);
+}
+

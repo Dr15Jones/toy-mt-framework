@@ -38,11 +38,16 @@ namespace demo {
       const std::string& label() const { return m_label;}
       void setLabel(const std::string& iLabel) { m_label = iLabel;}
       ThreadType threadType() const { return m_threadType;}
+
       const Getter* registerGet(const std::string&, const std::string&);
       bool hasPrefetchItems() const { return !m_getters.empty();}
       bool hasMightGetItems() const { return !m_mightGetters.empty();}
       const std::vector<Getter>& mightGet() const {return m_mightGetters;}
       const std::list<Getter>& prefetchItems() const { return m_getters;}
+
+      void setDependentModuleToCheck(std::vector<unsigned int>&);
+      bool isADependentModule(unsigned int) const;
+      
       unsigned int id() const { return m_moduleID;}
       void setID(unsigned int iID) {m_moduleID = iID;}
    protected:
@@ -57,6 +62,7 @@ namespace demo {
       std::string m_label;
       std::list<Getter> m_getters; //returns a pointer so need stable address
       std::vector<Getter> m_mightGetters;
+      std::vector<unsigned int> m_dependentModulesToCheck;
       ThreadType m_threadType;
       unsigned int m_moduleID; //unique id for the module in this job
    };

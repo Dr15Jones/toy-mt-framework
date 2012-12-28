@@ -10,6 +10,7 @@
 #include <iostream>
 #include <cstdio>
 #include <cstring>
+#include <atomic>
 
 #include "Event.h"
 #include "Producer.h"
@@ -20,6 +21,7 @@
 using namespace demo;
 typedef std::map<Event::LabelAndProduct, DataCache > LookupMap;
 
+static std::atomic<unsigned int> s_nextThreadID{0};
 inline
 bool
 Event::LabelAndProduct::operator<(const Event::LabelAndProduct& iRHS) const {
@@ -33,19 +35,24 @@ Event::LabelAndProduct::operator<(const Event::LabelAndProduct& iRHS) const {
 Event::Event():
 m_lookupMap(),
 m_index(0),
-m_relativeSpeed(1)
+m_relativeSpeed(1),
+m_transitionID(s_nextThreadID++)
 {}
 
 Event::Event(const Event& iOther):
 m_index(iOther.m_index),
-m_relativeSpeed(iOther.m_relativeSpeed)
+m_relativeSpeed(iOther.m_relativeSpeed),
+m_transitionID(s_nextThreadID++)
 {
+  m_producers.resize(iOther.m_producers.size());
   //NOTE: Items in the DataCache have references to the Event
   // so we need our own copy of them
   for(LookupMap::const_iterator it = iOther.m_lookupMap.begin(),itEnd=iOther.m_lookupMap.end();
       it != itEnd;
       ++it) {
     m_lookupMap.insert(std::make_pair(it->first, DataCache(it->second, this)));
+    auto prod = m_lookupMap[it->first].producer();
+    m_producers[prod->id()]=prod;
   }  
 }
 
@@ -111,6 +118,13 @@ Event::getAsyncImpl(Getter* iGetter, tbb::task* iTaskDoneWithGet) const
    found->producer()->doProduceAsync(iTaskDoneWithGet);
 }
 
+void Event::mustWaitFor(unsigned int iModuleID, tbb::task* iTask) const {
+   //std::cout <<"mustWaitFor "<<iModuleID<<" size "<<m_producers.size()<<std::endl;
+   assert(iModuleID < m_producers.size());
+   m_producers[iModuleID]->doProduceAsync(iTask);
+}
+
+
 void 
 Event::getAsync(Getter* iGetter, tbb::task* iTaskDoneWithGet) const
 {
@@ -131,7 +145,16 @@ Event::addProducer(Producer* iProd) {
    for(std::set<DataKey>::const_iterator it = keys.begin(), itEnd = keys.end();
        it != itEnd;
        ++it) {
-     m_lookupMap.insert(std::make_pair(LabelAndProduct(iProd->label().c_str(), it->c_str()), DataCache(iProd,this)));
+     LabelAndProduct key{LabelAndProduct(iProd->label().c_str(), it->c_str())};
+     auto prodIt = m_lookupMap.insert(std::make_pair(key, DataCache(iProd,this)));
+     auto prod = prodIt.first->second.producer();
+     assert(prod);
+     //NOTE: calling prod->id() always gives 0 even though it is supposed to be forwarding to iProd->id() !!
+     if(m_producers.size()<=iProd->id()) {
+        m_producers.resize(iProd->id()+1);
+     }
+     assert(iProd->id() < m_producers.size());
+     m_producers[iProd->id()]=prod;
    }
 }
 void 

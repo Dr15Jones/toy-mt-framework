@@ -24,6 +24,7 @@ namespace demo {
     Event();
     Event(const Event&);
     unsigned long index() const {return m_index;}
+    unsigned int transitionID() const {return m_transitionID;}
     
     //Used for testing, sets correlated speed of modules
     // value goes from 0. to 1.
@@ -38,6 +39,8 @@ namespace demo {
     //asynchronously get data. The task will be decremented once the data has been gotten.
     // If the ref_count of the task reaches zero, it will be spawned.
     void getAsync(Getter* iGetter, tbb::task* iTask) const;
+    
+    void mustWaitFor(unsigned int iModuleID, tbb::task* iTask) const;
     
     void put(const Producer*, const std::string&, int);
     void setIndex(unsigned long iIndex) {
@@ -67,8 +70,10 @@ namespace demo {
     
     
     std::map<LabelAndProduct,DataCache> m_lookupMap;
+    std::vector<ProducerWrapper*> m_producers;
     unsigned long m_index;
     double m_relativeSpeed;
+    unsigned int m_transitionID;
   };
   
   namespace edm {
