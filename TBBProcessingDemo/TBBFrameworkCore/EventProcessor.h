@@ -52,7 +52,6 @@ namespace demo {
     };
     friend class LoopContext;
   private:
-    static void get_and_process_one_event_f(void*);
     
     boost::shared_ptr<Source> m_source;
     tbb::task* m_eventLoopWaitTask;

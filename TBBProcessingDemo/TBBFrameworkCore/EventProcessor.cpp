@@ -227,24 +227,7 @@ EventProcessor::LoopContext::filter(bool iShouldContinue) {
      m_processor->m_eventLoopWaitTask->decrement_ref_count();
   }
 }
-/*
-void 
-EventProcessor::get_and_process_one_event_f(void * context) 
-{
-  EventProcessor::LoopContext* lc = static_cast<EventProcessor::LoopContext*>(context);
-  dispatch_group_t eventGroup = lc->m_processor->m_eventLoopGroup;
-  Source* source = lc->m_processor->m_source.get();
-  Schedule& schedule = *(lc->m_schedule);
-  schedule.event()->reset();
-  
-  if(source->setEventInfo(*(schedule.event()))) {
-    //Make sure to wait for all work done by iSchedule
-    dispatch_group_enter(eventGroup);
-    
-    schedule.process(ScheduleFilteringCallback(context));
-  }
-}
-*/
+
 void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
   m_schedules.reserve(iNumConcurrentEvents);
 
