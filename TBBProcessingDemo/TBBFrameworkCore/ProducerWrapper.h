@@ -9,7 +9,7 @@
 #ifndef DispatchProcessingDemo_ProducerWrapper_h
 #define DispatchProcessingDemo_ProducerWrapper_h
 #include <atomic>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "ModuleWrapper.h"
 #include "PrefetchAndWorkWrapper.h"
 #include "WaitingTaskList.h"
@@ -36,12 +36,12 @@ namespace demo {
     unsigned int id() const {m_producer->id();}
   private:
     void doProduceAsyncImpl();
-    void doWork();
+    void doWork() override;
     Producer* producer() const;
 
     ProducerWrapper& operator=(const ProducerWrapper&);
     
-    boost::shared_ptr<Producer> m_producer;
+    std::shared_ptr<Producer> m_producer;
     WaitingTaskList m_waitingList;
     bool m_wasRun;
 

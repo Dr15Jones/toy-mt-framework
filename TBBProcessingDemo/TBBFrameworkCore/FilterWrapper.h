@@ -11,7 +11,7 @@
 #ifndef DispatchProcessingDemo_FilterWrapper_h
 #define DispatchProcessingDemo_FilterWrapper_h
 #include <atomic>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "ModuleWrapper.h"
 #include "Filter.h"
 
@@ -19,7 +19,7 @@ namespace demo {
   class Event;
   class FilterWrapper: public ModuleWrapper {
   public:
-    FilterWrapper(boost::shared_ptr<Filter> iFilter,Event*);
+    FilterWrapper(std::shared_ptr<Filter> iFilter,Event*);
     FilterWrapper(const FilterWrapper& iWrapper, Event* iEvent);
     
     void reset();
@@ -32,7 +32,7 @@ namespace demo {
     
   private:
     FilterWrapper(const FilterWrapper&);
-    boost::shared_ptr<Filter> m_filter;
+    std::shared_ptr<Filter> m_filter;
     bool m_keep;
     std::atomic<bool> m_wasRun;    
   };

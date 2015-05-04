@@ -7,6 +7,7 @@
 //
 
 #include <iostream>
+#include <cassert>
 #include "EventProcessor.h"
 #include "Schedule.h"
 #include "Event.h"
@@ -36,7 +37,7 @@ EventProcessor::~EventProcessor()
 
 void 
 EventProcessor::setSource(Source* iSource) {
-  m_source = boost::shared_ptr<Source>(iSource);
+  m_source = std::shared_ptr<Source>(iSource);
 }
 void
 EventProcessor::addPath(const std::string& iName,

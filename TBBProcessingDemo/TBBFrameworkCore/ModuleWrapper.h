@@ -9,7 +9,7 @@
 #ifndef DispatchProcessingDemo_ModuleWrapper_h
 #define DispatchProcessingDemo_ModuleWrapper_h
 #include <atomic>
-#include <boost/shared_ptr.hpp>
+#include <atomic>
 #include "SerialTaskQueue.h"
 
 namespace demo {
@@ -49,7 +49,7 @@ namespace demo {
   private:
     Module* m_module;
     Event* m_event;
-    boost::shared_ptr<SerialTaskQueue> m_runQueue;
+    std::shared_ptr<SerialTaskQueue> m_runQueue;
     std::atomic_flag m_requestedPrefetch;
 
   };

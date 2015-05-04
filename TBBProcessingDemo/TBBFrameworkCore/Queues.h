@@ -6,7 +6,7 @@
  *  Copyright 2009 FNAL. All rights reserved.
  *
  */
- #include <boost/shared_ptr.hpp>
+ #include <memory>
  #include "TaskQueueBase.h"
  #include "ConcurrentTaskQueue.h"
  #include "SerialTaskQueue.h"
@@ -18,6 +18,6 @@
 // reading of the back in away that isn't dependent on how 'push_back' and 'back'
 // would interact if called from different threads
 namespace demo {
-   extern boost::shared_ptr<SerialTaskQueue> s_non_thread_safe_queue;
-   extern boost::shared_ptr<ConcurrentTaskQueue> s_thread_safe_queue;
+   extern std::shared_ptr<SerialTaskQueue> s_non_thread_safe_queue;
+   extern std::shared_ptr<ConcurrentTaskQueue> s_thread_safe_queue;
 }

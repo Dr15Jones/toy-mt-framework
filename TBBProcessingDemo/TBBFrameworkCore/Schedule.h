@@ -11,7 +11,7 @@
 #include <vector>
 #include <string>
 #include <atomic>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "PathFilteringCallback.h"
 #include "Path.h"
 #include "Event.h"
@@ -67,8 +67,8 @@ namespace demo {
     void addPath(Path* iPath);
     void aPathHasFinished(bool iSuccess);
     Event m_event;
-    std::vector<boost::shared_ptr<Path>> m_paths;
-    std::vector<boost::shared_ptr<FilterWrapper> > m_filters;
+    std::vector<std::shared_ptr<Path>> m_paths;
+    std::vector<std::shared_ptr<FilterWrapper> > m_filters;
     std::atomic<unsigned int> m_pathsStillRunning;
     PathFilteringCallback m_pathDoneCallback;
     ScheduleFilteringCallback m_scheduleCallback;

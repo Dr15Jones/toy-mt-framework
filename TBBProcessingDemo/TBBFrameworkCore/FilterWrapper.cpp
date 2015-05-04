@@ -23,7 +23,7 @@ FilterWrapper::filter() const
   return m_filter.get();
 }
 
-FilterWrapper::FilterWrapper(boost::shared_ptr<Filter> iFilter,Event* iEvent):
+FilterWrapper::FilterWrapper(std::shared_ptr<Filter> iFilter,Event* iEvent):
 ModuleWrapper(iFilter.get(),iEvent),
 m_filter(iFilter),
 m_keep(false),
@@ -53,9 +53,6 @@ FilterWrapper::doFilter()
 {
   if(!m_wasRun) {
     m_keep = filter()->doFilter(*event());
-    //NOTE: needs a memory barrier to guarantee that
-    // m_wasRun is never set until after doFilter is run
-    __sync_synchronize();
     m_wasRun=true;
   }
   return m_keep;

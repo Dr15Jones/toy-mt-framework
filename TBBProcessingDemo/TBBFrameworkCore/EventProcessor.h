@@ -11,7 +11,7 @@
 #include <vector>
 #include <map>
 #include "Schedule.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <tbb/task.h>
 
 namespace demo {
@@ -42,18 +42,18 @@ namespace demo {
     public: 
       LoopContext():m_schedule(),m_processor(0) {}
       void filter(bool);
-      boost::shared_ptr<Schedule> schedule() const { return m_schedule;}
+      std::shared_ptr<Schedule> schedule() const { return m_schedule;}
       EventProcessor* processor() const {return m_processor;}
     private:
       LoopContext(Schedule* iSchedule, EventProcessor* iProc):
       m_schedule(iSchedule), m_processor(iProc) {}
-      boost::shared_ptr<Schedule> m_schedule;
+      std::shared_ptr<Schedule> m_schedule;
       EventProcessor* m_processor;
     };
     friend class LoopContext;
   private:
     
-    boost::shared_ptr<Source> m_source;
+    std::shared_ptr<Source> m_source;
     tbb::task* m_eventLoopWaitTask;
     std::vector<LoopContext> m_schedules;
     std::map<std::string,Producer*> m_producers;

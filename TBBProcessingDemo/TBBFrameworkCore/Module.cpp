@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <cassert>
 #include "tbb/task.h"
 #include "Module.h"
 #include "Getter.h"

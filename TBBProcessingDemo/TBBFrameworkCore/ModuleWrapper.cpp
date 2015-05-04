@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <cassert>
 #include "tbb/task.h"
 
 #include "ModuleWrapper.h"
