@@ -6,7 +6,6 @@
 //  Copyright 2012 FNAL. All rights reserved.
 //
 
-#include <boost/thread/tss.hpp>
 #include "ModuleThreadStack.h"
 
 namespace demo {
@@ -19,11 +18,7 @@ namespace demo {
   }
   
   std::vector<ModuleThreadStack::TransitionModuleID>& ModuleThreadStack::privateStack() {
-    static boost::thread_specific_ptr<std::vector<TransitionModuleID>> pStack;
-    if(0==pStack.get()) {
-      pStack.reset(new std::vector<TransitionModuleID>{});
-      pStack->reserve(2);
-    }
-    return *(pStack.get());
+    thread_local std::vector<TransitionModuleID> s_stack;
+    return s_stack;
   }
 }
