@@ -7,8 +7,6 @@
  *
  */
  #include <memory>
- #include "TaskQueueBase.h"
- #include "ConcurrentTaskQueue.h"
  #include "SerialTaskQueue.h"
 //a stack of queues which are managing work which is not thread safe
 // we need multiple queues because when one is blocked we need to start 
