@@ -13,7 +13,7 @@
 #include "Schedule.h"
 #include "Path.h"
 #include "FilterWrapper.h"
-#include "Queues.h"
+#include "task_helpers.h"
 
 using namespace demo;
 
@@ -62,9 +62,9 @@ Schedule::process(ScheduleFilteringCallback iCallback) {
      
     m_pathsStillRunning=m_paths.size();
     for(auto& path : m_paths) {
-           Schedule* pThis = this; 
-           Path* pPath = path.get();
-           s_thread_safe_queue->push([pPath,pThis]{pThis->processPresentPath(pPath);});
+      Schedule* pThis = this; 
+      Path* pPath = path.get();
+      spawn_task_from([pPath,pThis]{pThis->processPresentPath(pPath);});
     }
   } else {
     m_scheduleCallback(true);

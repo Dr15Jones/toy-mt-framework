@@ -15,6 +15,7 @@
 #include "ModuleThreadStack.h"
 #include "Module.h"
 #include "Queues.h"
+#include "task_helpers.h"
 #include "Event.h"
 
 using namespace demo;
@@ -109,7 +110,7 @@ namespace demo {
                   //we need to leave the non_thread_safe_queue so if our 'doWork' requests
                   // data from another thread unsafe module that module can be given the 'lock'
                   // on the thread unsafe queue and run its task.
-                  s_thread_safe_queue->push([wrapper]{
+                  spawn_task_from([wrapper]{
                      unsigned int depModule = checkStackForDependencies(wrapper->m_wrapper->event()->transitionID(),wrapper->module_());
                      if(kNoDependenciesReturnCode!= depModule) {
                         wrapper->m_wrapper->event()->mustWaitFor(depModule,createTask<pnw::NonThreadSafeDoWorkTask>(wrapper));

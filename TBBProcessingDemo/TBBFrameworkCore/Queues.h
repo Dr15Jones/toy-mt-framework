@@ -19,5 +19,4 @@
 // would interact if called from different threads
 namespace demo {
    extern std::shared_ptr<SerialTaskQueue> s_non_thread_safe_queue;
-   extern std::shared_ptr<ConcurrentTaskQueue> s_thread_safe_queue;
 }

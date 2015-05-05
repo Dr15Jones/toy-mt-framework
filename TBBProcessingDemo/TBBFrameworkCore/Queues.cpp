@@ -11,6 +11,5 @@
 #include "ConcurrentTaskQueue.h"
 #include "SerialTaskQueue.h"
 namespace demo {
-   std::shared_ptr<ConcurrentTaskQueue> s_thread_safe_queue(new ConcurrentTaskQueue{});
    std::shared_ptr<SerialTaskQueue> s_non_thread_safe_queue(new SerialTaskQueue{});
 }
