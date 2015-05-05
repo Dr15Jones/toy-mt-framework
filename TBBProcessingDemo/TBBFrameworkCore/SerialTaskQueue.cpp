@@ -1,16 +1,28 @@
-/*
- *  SerialTaskQueue.cpp
- *  TBBProcessingDemo
- *
- *  Created by Chris Jones on 9/17/09.
- *  Copyright 2009 FNAL. All rights reserved.
- *
- */
+// -*- C++ -*-
+//
+// Package:     Concurrency
+// Class  :     SerialTaskQueue
+// 
+// Implementation:
+//     [Notes on implementation]
+//
+// Original Author:  Chris Jones
+//         Created:  Thu Feb 21 11:31:52 CST 2013
+// $Id$
+//
 
+// system include files
+
+// user include files
 #include "SerialTaskQueue.h"
+
+#include "Likely.h"
 
 using namespace demo;
 
+//
+// member functions
+//
 bool
 SerialTaskQueue::resume() {
   if(0==--m_pauseCount) {
@@ -24,7 +36,7 @@ SerialTaskQueue::resume() {
 }
 
 void
-SerialTaskQueue::pushTask(SerialTaskQueue::TaskBase* iTask) {
+SerialTaskQueue::pushTask(TaskBase* iTask) {
   tbb::task* t = pushAndGetNextTask(iTask);
   if(0!=t) {
     tbb::task::spawn(*t);      
@@ -34,7 +46,7 @@ SerialTaskQueue::pushTask(SerialTaskQueue::TaskBase* iTask) {
 tbb::task* 
 SerialTaskQueue::pushAndGetNextTask(TaskBase* iTask) {
   tbb::task* returnValue{0};
-  if(0!=iTask) {
+  if likely(0!=iTask) {
     m_tasks.push(iTask);
     returnValue = pickNextTask();
   }
@@ -51,9 +63,9 @@ SerialTaskQueue::finishedTask() {
 SerialTaskQueue::TaskBase*
 SerialTaskQueue::pickNextTask() {
   
-  if(0 == m_pauseCount and not m_taskChosen.test_and_set()) {
+  if likely(0 == m_pauseCount and not m_taskChosen.test_and_set()) {
     TaskBase* t=0;
-    if(m_tasks.try_pop(t)) {
+    if likely(m_tasks.try_pop(t)) {
       return t;
     }
     //no task was actually pulled
@@ -72,3 +84,29 @@ SerialTaskQueue::pickNextTask() {
   }
   return 0;
 }
+
+void SerialTaskQueue::pushAndWait(tbb::empty_task* iWait, TaskBase* iTask) {
+   auto nextTask = pushAndGetNextTask(iTask);
+   if likely(nullptr != nextTask) {
+     if likely(nextTask == iTask) {
+        //spawn and wait for all requires the task to have its parent set
+        iWait->spawn_and_wait_for_all(*nextTask);
+     } else {
+        tbb::task::spawn(*nextTask);
+        iWait->wait_for_all();
+     }
+   } else {
+     //a task must already be running in this queue
+     iWait->wait_for_all();              
+   }
+   tbb::task::destroy(*iWait);
+}
+
+
+//
+// const member functions
+//
+
+//
+// static member functions
+//
