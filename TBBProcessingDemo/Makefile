@@ -13,14 +13,14 @@ TBB_LIB_PATH :=-L/Users/cdj/src/cms/threading/tbb/tbb40_20120408oss/build/macos_
 #TBB_LIB_PATH :=-L/Users/cdj/src/cms/threading/tbb/tbb40_20120408oss/build/macos_intel64_gcc_cc4.2.1_os10.7.4_debug/
 #TBB_LIB := $(TBB_LIB_PATH) -ltbb_debug
 ifeq ($(UNAME), Linux)
-BOOST_INCLUDES := -I/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/boost/1.57.0-cms/include
-CPPUNIT_INCLUDES := -I/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/cppunit/1.12.1-cms/include
-CPPUNIT_LIB_PATH := -L/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/cppunit/1.12.1-cms/lib
+BOOST_INCLUDES := -I/cvmfs/cms.cern.ch/slc6_amd64_gcc493/external/boost/1.57.0-kpegke/include
+CPPUNIT_INCLUDES := -I/cvmfs/cms.cern.ch/slc6_amd64_gcc493/external/cppunit/1.12.1/include
+CPPUNIT_LIB_PATH := -L/cvmfs/cms.cern.ch/slc6_amd64_gcc493/external/cppunit/1.12.1/lib
 CPPUNIT_LIB := $(CPPUNIT_LIB_PATH) -lcppunit
 #change the following to to point to where you installed tbb
-TBB_INCLUDES := -I/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/tbb/43_20141023oss/include
+TBB_INCLUDES := -I/cvmfs/cms.cern.ch/slc6_amd64_gcc493/external/tbb/43_20150316oss/include
 #TBB_LIB_PATH := -L/uscms_data/d2/cdj/build/multicore/tbb/tbb40_20120408oss//build/linux_intel64_gcc_cc4.7.0_libc2.5_kernel2.6.18_debug
-TBB_LIB_PATH := -L/cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/tbb/43_20141023oss/lib
+TBB_LIB_PATH := -L/cvmfs/cms.cern.ch/slc6_amd64_gcc493/external/tbb/43_20150316oss/lib
 CXXOTHERFLAGS := -D__USE_XOPEN2K8
 endif
 TBB_LIB := $(TBB_LIB_PATH) -ltbb
