@@ -9,6 +9,8 @@
 #ifndef DispatchProcessingDemo_PathFilteringCallback_h
 #define DispatchProcessingDemo_PathFilteringCallback_h
 
+#include <exception>
+
 namespace demo {
   class Schedule;
   class EventProcessor;
@@ -18,7 +20,7 @@ namespace demo {
     explicit PathFilteringCallback(Schedule* iSchedule=0):
     m_schedule(iSchedule) {}
     
-    void operator()(bool) const;
+    void operator()(std::exception_ptr) const;
   private:
     Schedule* m_schedule;
   };  

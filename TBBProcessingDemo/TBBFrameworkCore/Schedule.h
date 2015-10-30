@@ -30,7 +30,7 @@ namespace demo {
     explicit ScheduleFilteringCallback(void* iContext=0):
     m_context(iContext) {}
     
-    void operator()(bool) const;
+    void operator()(std::exception_ptr) const;
   private:
     void* m_context;
   };
@@ -52,7 +52,7 @@ namespace demo {
     
     FilterWrapper* findFilter(const std::string&);
     
-    void setFatalJobErrorOccurredPointer(bool* iPtr) {
+    void setFatalJobErrorOccurredPointer(std::atomic<bool>* iPtr) {
       m_fatalJobErrorOccuredPtr = iPtr;
     }
     
@@ -65,14 +65,14 @@ namespace demo {
     //used for cloning
     Schedule(Event*);
     void addPath(Path* iPath);
-    void aPathHasFinished(bool iSuccess);
+    void aPathHasFinished(std::exception_ptr iException);
     Event m_event;
     std::vector<std::shared_ptr<Path>> m_paths;
     std::vector<std::shared_ptr<FilterWrapper> > m_filters;
     std::atomic<unsigned int> m_pathsStillRunning;
     PathFilteringCallback m_pathDoneCallback;
     ScheduleFilteringCallback m_scheduleCallback;
-    bool* m_fatalJobErrorOccuredPtr;
+    std::atomic<bool>* m_fatalJobErrorOccuredPtr;
   };
 }
 

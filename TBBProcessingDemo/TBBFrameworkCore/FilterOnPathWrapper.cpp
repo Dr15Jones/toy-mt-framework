@@ -36,8 +36,14 @@ m_filter(iFilter),m_path(iPath),m_index(iIndex)
 void
 FilterOnPathWrapper::doWork()
 {
-  bool keep = m_filter->doFilter();
-  m_path->doNextIfSuccess(keep, true, m_index);
+  std::exception_ptr eptr;
+  bool keep = false;
+  try {
+    bool keep = m_filter->doFilter();
+  }catch(...) {
+    eptr = std::current_exception();
+  }
+  m_path->doNextIfSuccess(keep, eptr, m_index);
 }
 
 void

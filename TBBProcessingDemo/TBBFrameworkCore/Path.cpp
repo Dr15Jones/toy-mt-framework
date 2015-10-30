@@ -10,7 +10,6 @@
 
 #include <assert.h>
 #include "Path.h"
-#include "PathFilteringCallback.h"
 #include "FilterWrapper.h"
 
 
@@ -21,29 +20,29 @@ void Path::runAsync(PathFilteringCallback iCallback) {
   if(!m_filters.empty()) {
     runFilterAsync(0);
   } else {
-    m_callback(true);
+    m_callback(std::exception_ptr{});
   }
 }
 
 
-void Path::doNextIfSuccess(bool iKeep, bool iSuccess, size_t iPreviousIndex) {
+void Path::doNextIfSuccess(bool iKeep, std::exception_ptr iException, size_t iPreviousIndex) {
   //something bad happened
-  if(!iSuccess) {
-    m_callback(false);
+  if(iException) {
+    m_callback(iException);
   }
   if(not *m_fatalJobErrorOccurredPtr && iKeep && iPreviousIndex+1 < m_filters.size()) {
     //go to next
     runFilterAsync(iPreviousIndex+1);
   } else {
     //finished path without an error
-    m_callback(true);
+    m_callback(iException);
   }  
 }
   
 void Path::runFilterAsync(size_t iIndex) {
   if (*m_fatalJobErrorOccurredPtr) {
     //There must have been a fatal problem on another path
-    m_callback(true);
+    m_callback(std::exception_ptr{});
     return;
   }
     

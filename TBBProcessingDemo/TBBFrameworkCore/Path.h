@@ -10,6 +10,8 @@
 #define DispatchProcessingDemo_Path_h
 #include <vector>
 #include <memory>
+#include <exception>
+#include <atomic>
 #include "PathFilteringCallback.h"
 #include "FilterOnPathWrapper.h"
 
@@ -26,7 +28,7 @@ namespace demo {
     
     void reset();
     
-    void setFatalJobErrorOccurredPointer(bool* iPtr) {
+    void setFatalJobErrorOccurredPointer(std::atomic<bool>* iPtr) {
       m_fatalJobErrorOccurredPtr = iPtr;
     }
     
@@ -34,7 +36,7 @@ namespace demo {
     
     Path* clone(const std::vector<std::shared_ptr<FilterWrapper> >& iWrappers, Event*) const;
     
-    void doNextIfSuccess(bool iKeep, bool iSuccess, size_t iPreviousIndex);
+    void doNextIfSuccess(bool iKeep, std::exception_ptr iException, size_t iPreviousIndex);
   private:
     friend class FilterOnPathWrapper;
     Path(const Path& iOther); //undefined
@@ -42,7 +44,7 @@ namespace demo {
     void runFilterAsync( size_t iIndex);
     
     std::vector<FilterOnPathWrapper> m_filters;
-    bool* m_fatalJobErrorOccurredPtr;
+    std::atomic<bool>* m_fatalJobErrorOccurredPtr;
     PathFilteringCallback m_callback;
   };
   

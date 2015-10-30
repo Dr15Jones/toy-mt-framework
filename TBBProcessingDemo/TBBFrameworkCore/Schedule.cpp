@@ -67,7 +67,7 @@ Schedule::process(ScheduleFilteringCallback iCallback) {
       spawn_task_from([pPath,pThis]{pThis->processPresentPath(pPath);});
     }
   } else {
-    m_scheduleCallback(true);
+    m_scheduleCallback(std::exception_ptr{});
   }
 }
 
@@ -129,21 +129,21 @@ Schedule::clone() {
 }
 
 void 
-Schedule::aPathHasFinished(bool iSuccess) {
-   if(!iSuccess) {
+Schedule::aPathHasFinished(std::exception_ptr iException) {
+   if(!iException) {
      *(m_fatalJobErrorOccuredPtr) = true;
    }
    assert(0!=m_pathsStillRunning);
    if(0== --m_pathsStillRunning) {
-     m_scheduleCallback(not *m_fatalJobErrorOccuredPtr);
+     m_scheduleCallback(iException);
    }
 }
 
 
 void
-PathFilteringCallback::operator()(bool iSuccess) const
+PathFilteringCallback::operator()(std::exception_ptr iException) const
 {
-  m_schedule->aPathHasFinished(iSuccess);
+  m_schedule->aPathHasFinished(iException);
 }
 
 
@@ -151,7 +151,7 @@ void
 Schedule::processPresentPath(Path* iPath) {
   //printf("Schedule::processPresentPath %u\n",iIndex);      
   if(*(m_fatalJobErrorOccuredPtr)) {
-    m_scheduleCallback(false);
+    m_scheduleCallback(std::exception_ptr{} );
     return;
   }
   iPath->runAsync(m_pathDoneCallback);

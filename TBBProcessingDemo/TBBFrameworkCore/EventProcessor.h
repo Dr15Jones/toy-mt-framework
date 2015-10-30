@@ -8,10 +8,11 @@
 
 #ifndef DispatchProcessingDemo_EventProcessor_h
 #define DispatchProcessingDemo_EventProcessor_h
+#include "Schedule.h"
 #include <vector>
 #include <map>
-#include "Schedule.h"
 #include <memory>
+#include <exception>
 #include <tbb/task.h>
 
 namespace demo {
@@ -41,7 +42,7 @@ namespace demo {
        friend class EventProcessor;
     public: 
       LoopContext():m_schedule(),m_processor(0) {}
-      void filter(bool);
+      void filter(std::exception_ptr);
       std::shared_ptr<Schedule> schedule() const { return m_schedule;}
       EventProcessor* processor() const {return m_processor;}
     private:
@@ -53,13 +54,20 @@ namespace demo {
     friend class LoopContext;
   private:
     
+    void tryToSet(std::exception_ptr iException);
+
     std::shared_ptr<Source> m_source;
     tbb::task* m_eventLoopWaitTask;
     std::vector<LoopContext> m_schedules;
     std::map<std::string,Producer*> m_producers;
     std::vector<Filter*> m_filters;
     unsigned int m_nextModuleID;
-    bool m_fatalJobErrorOccured;    
+
+    //The atomic protects concurrent access of deferredExceptionPtr_
+    std::atomic<bool> m_deferredExceptionPtrIsSet;
+    std::exception_ptr m_deferredExceptionPtr;
+
+    std::atomic<bool> m_fatalJobErrorOccured;    
   };
 
 }

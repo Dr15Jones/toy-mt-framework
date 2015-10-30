@@ -22,6 +22,8 @@ EventProcessor::EventProcessor():
   m_source(),
   m_eventLoopWaitTask(new (tbb::task::allocate_root()) tbb::empty_task{}),
   m_nextModuleID(0),
+  m_deferredExceptionPtrIsSet(false),
+  m_deferredExceptionPtr{},
   m_fatalJobErrorOccured(false)
   {
     m_eventLoopWaitTask->increment_ref_count();
@@ -190,9 +192,9 @@ EventProcessor::finishSetup() {
 
 
 void
-ScheduleFilteringCallback::operator()(bool iShouldContinue) const {
+ScheduleFilteringCallback::operator()(std::exception_ptr iException) const {
   EventProcessor::LoopContext* lc = static_cast<EventProcessor::LoopContext*>(m_context);
-  lc->filter(iShouldContinue);
+  lc->filter(iException);
 }
 
 namespace demo {
@@ -220,12 +222,25 @@ namespace demo {
 } 
 
 void
-EventProcessor::LoopContext::filter(bool iShouldContinue) {
-  if(iShouldContinue) {    
+EventProcessor::LoopContext::filter(std::exception_ptr iException) {
+  if(not iException) {
     tbb::task::spawn( *(new (tbb::task::allocate_root()) GetAndProcessOneEventTask{*this}));
   } else {
      //told to stop processing so we signal that this schedule has finished
      m_processor->m_eventLoopWaitTask->decrement_ref_count();
+     
+     m_processor->tryToSet(iException);
+  }
+}
+
+void EventProcessor::tryToSet(std::exception_ptr iException) {
+  bool expected = false;
+  if( m_deferredExceptionPtrIsSet.compare_exchange_strong(expected,true) ) {
+    m_deferredExceptionPtr = iException;
+    //this second set is to force *m_exceptionPtr to be seen by other threads
+    // This works since m_exceptionPtr is only used after all threads
+    // have been joined
+    m_deferredExceptionPtrIsSet = true;
   }
 }
 
@@ -244,4 +259,8 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
   // object is being accessed on another thread
   m_eventLoopWaitTask->increment_ref_count();
   m_eventLoopWaitTask->spawn_and_wait_for_all(*(new (tbb::task::allocate_root()) GetAndProcessOneEventTask{m_schedules[0]}));
+
+  if(m_deferredExceptionPtrIsSet) {
+    std::rethrow_exception(m_deferredExceptionPtr);
+  }
 }
