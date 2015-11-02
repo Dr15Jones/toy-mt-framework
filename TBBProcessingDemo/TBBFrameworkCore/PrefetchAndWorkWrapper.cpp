@@ -57,38 +57,38 @@ namespace {
    template <typename T, typename W> T* createTask(W* iWrapper) { return new (tbb::task::allocate_root()) T(iWrapper);}
 }
 
+template<typename Task>
+void 
+PrefetchAndWorkWrapper::callWrapperDoWork(PrefetchAndWorkWrapper* wrapper) {
+  unsigned int depModule = checkStackForDependencies(wrapper->m_wrapper->event()->transitionID(),wrapper->module_());
+  if(kNoDependenciesReturnCode!= depModule) {
+    wrapper->m_wrapper->event()->mustWaitFor(depModule,createTask<Task>(wrapper));
+  } else {
+    ModuleThreadStackSentry s(wrapper->m_wrapper->event()->transitionID(), wrapper->module_()->id());
+    wrapper->doWork();
+  }
+}
+
 namespace demo {
    namespace pnw {
+
       class DoWorkTask : public tbb::task {
       public:
          DoWorkTask(PrefetchAndWorkWrapper* iWrapper):
          m_wrapper(iWrapper) {}
       
-         tbb::task* execute() {
-            auto wrapper = this->m_wrapper;
-            auto queue = wrapper->runQueue();
-            tbb::task* nextTask=0;
-            if(queue) {
-               nextTask = wrapper->runQueue()->pushAndGetNextTaskToRun([wrapper]{
-                  unsigned int depModule = checkStackForDependencies(wrapper->m_wrapper->event()->transitionID(),wrapper->module_());
-                  if(kNoDependenciesReturnCode!= depModule) {
-                     wrapper->m_wrapper->event()->mustWaitFor(depModule,createTask<pnw::DoWorkTask>(wrapper));
-                  } else {
-                     ModuleThreadStackSentry s(wrapper->m_wrapper->event()->transitionID(), wrapper->module_()->id());
-                     wrapper->doWork();
-                  }
-                  });
-            } else {
-               unsigned int depModule = checkStackForDependencies(wrapper->m_wrapper->event()->transitionID(),wrapper->module_());
-               if(kNoDependenciesReturnCode!= depModule) {
-                  wrapper->m_wrapper->event()->mustWaitFor(depModule,createTask<pnw::DoWorkTask>(wrapper));
-               } else {
-                  ModuleThreadStackSentry s(wrapper->m_wrapper->event()->transitionID(), wrapper->module_()->id());
-                  wrapper->doWork();
-               }
-            }
-            return nextTask;
-         }
+        tbb::task* execute() {
+          auto wrapper = this->m_wrapper;
+          auto queue = wrapper->runQueue();
+          tbb::task* nextTask=0;
+          if(queue) {
+            nextTask = wrapper->runQueue()->pushAndGetNextTaskToRun([wrapper]{ PrefetchAndWorkWrapper::callWrapperDoWork<DoWorkTask>(wrapper); });
+          } else {
+            PrefetchAndWorkWrapper::callWrapperDoWork<DoWorkTask>(wrapper);
+          }
+          return nextTask;
+        }
+
       private:
          PrefetchAndWorkWrapper* m_wrapper;
       };
@@ -111,16 +111,10 @@ namespace demo {
                   // data from another thread unsafe module that module can be given the 'lock'
                   // on the thread unsafe queue and run its task.
                   spawn_task_from([wrapper]{
-                     unsigned int depModule = checkStackForDependencies(wrapper->m_wrapper->event()->transitionID(),wrapper->module_());
-                     if(kNoDependenciesReturnCode!= depModule) {
-                        wrapper->m_wrapper->event()->mustWaitFor(depModule,createTask<pnw::NonThreadSafeDoWorkTask>(wrapper));
-                     } else {
-                        ModuleThreadStackSentry s(wrapper->m_wrapper->event()->transitionID(), wrapper->module_()->id());
-                        wrapper->doWork();
-                     }
-                     //now that our work is done, we allow other instances use the queues
-                     s_non_thread_safe_queue->resume();
-                     wrapper->runQueue()->resume();     
+                      PrefetchAndWorkWrapper::callWrapperDoWork<NonThreadSafeDoWorkTask>(wrapper);
+                      //now that our work is done, we allow other instances use the queues
+                      s_non_thread_safe_queue->resume();
+                      wrapper->runQueue()->resume();     
                   });
                });
             });

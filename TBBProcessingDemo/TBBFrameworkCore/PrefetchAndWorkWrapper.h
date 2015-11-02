@@ -13,24 +13,21 @@ namespace demo {
   class ModuleWrapper;
   class Module;
   class SerialTaskQueue;
-  namespace pnw {
-     class DoWorkTask;
-     class NonThreadSafeDoWorkTask; 
-  };
 
   class PrefetchAndWorkWrapper {
-     friend class pnw::DoWorkTask;
-     friend class pnw::NonThreadSafeDoWorkTask;
      
   public:
     PrefetchAndWorkWrapper(ModuleWrapper* iWrapper);
-    
+
+    template<typename Task>
+      static void callWrapperDoWork(PrefetchAndWorkWrapper*);
+
+    SerialTaskQueue* runQueue() const;
   protected:
     void doPrefetchAndWork();
 
   private:
     Module* module_() const;
-    SerialTaskQueue* runQueue() const;
     
     virtual void doWork() =0;
     
