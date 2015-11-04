@@ -35,7 +35,6 @@ namespace demo {
     
     unsigned int id() const {m_producer->id();}
   private:
-    void doProduceAsyncImpl();
     void doWork() override;
     Producer* producer() const;
 

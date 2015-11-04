@@ -95,31 +95,12 @@ ProducerWrapper::doProduceAsync(tbb::task* iCallTaskWhenDone)
   //std::cout <<"     requested to run "<<m_producer->label()<<std::endl;
   //if(m_wasRun or m_requestedToRun.test_and_set()) {
   m_waitingList.add(iCallTaskWhenDone);
-  if(m_wasRun) {
-    //std::cout <<"     "<<m_producer->label() <<"already run"<<std::endl;
-    return;
-  }
-  
-  //NOTE: review this. I think we could just call 'doProduceAsyncImpl
-  // directly since 'doPrefetchAndWork' does all of its activities asynchronously
-  // anyway 
-
-  //SECOND NOTE: Since we now only request to run on the first request I can
-  // get rid of the m_requestedPrefetch in the base class since we will only
-  // ask to prefetch once now
-  
-  //++s_numberOfTasks;
-  doProduceAsyncImpl();
-  return;
-}
-
-
-void
-ProducerWrapper::doProduceAsyncImpl()
-{
-  if(not this->m_wasRun) {
+  if(not m_wasRun) {
+    //++s_numberOfTasks;
     doPrefetchAndWork();
   }
+  
+  return;
 }
 
 void
