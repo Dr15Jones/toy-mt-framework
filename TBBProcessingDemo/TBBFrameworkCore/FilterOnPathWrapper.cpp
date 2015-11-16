@@ -34,12 +34,15 @@ m_filter(iFilter),m_path(iPath),m_index(iIndex)
 }
 
 void
-FilterOnPathWrapper::doWork()
+FilterOnPathWrapper::doWork(std::exception_ptr iPtr)
 {
   std::exception_ptr eptr;
   bool keep = false;
   try {
-    bool keep = m_filter->doFilter();
+    if( iPtr ) {
+       std::rethrow_exception(iPtr);
+    }
+    keep = m_filter->doFilter();
   }catch(...) {
     eptr = std::current_exception();
   }
@@ -54,7 +57,7 @@ FilterOnPathWrapper::filterAsync()
   } else {
     //Still need to cal 'doWork' since that is where the
     // path gets informed that the work was done
-    this->doWork();
+    this->doWork(std::exception_ptr{});
   }
 }
 

@@ -7,10 +7,10 @@
  *
  */
 
-#include "tbb/task.h"
 #include "WaitingTaskList.h"
 #include <iostream>
 #include <cassert>
+#include <memory>
 #include "ThreadingHelpers.h"
 
 using namespace demo;
@@ -19,6 +19,7 @@ using namespace demo;
 void
 WaitingTaskList::reset()
 {
+   m_exceptionPtr = std::exception_ptr{};
    m_waiting = true;
    unsigned int nSeenTasks = m_lastAssignedCacheIndex;
    m_lastAssignedCacheIndex = 0;
@@ -36,7 +37,7 @@ WaitingTaskList::reset()
 }
 
 WaitNode* 
-WaitingTaskList::createNode(tbb::task* iTask)
+WaitingTaskList::createNode(WaitingTask* iTask)
 {
    unsigned int index = m_lastAssignedCacheIndex++;
    
@@ -55,9 +56,12 @@ WaitingTaskList::createNode(tbb::task* iTask)
 
 
 void
-WaitingTaskList::add(tbb::task* iTask) {
+WaitingTaskList::add(WaitingTask* iTask) {
    iTask->increment_ref_count();
    if(!m_waiting) {
+      if(m_exceptionPtr) {
+         iTask->dependentTaskFailed(m_exceptionPtr);
+      }
       if(0==iTask->decrement_ref_count()) {
          tbb::task::spawn(*iTask);
       }
@@ -102,6 +106,9 @@ WaitingTaskList::announce()
          hardware_pause();
       }
       auto t = n->m_task;
+      if(m_exceptionPtr) {
+         t->dependentTaskFailed(m_exceptionPtr);
+      }
       if(0==t->decrement_ref_count()){
          tbb::task::spawn(*t);
       }
@@ -113,8 +120,9 @@ WaitingTaskList::announce()
 }
 
 void
-WaitingTaskList::doneWaiting()
+WaitingTaskList::doneWaiting(std::exception_ptr iPtr)
 {
+   m_exceptionPtr = iPtr;
    m_waiting=false;
    announce();
 }

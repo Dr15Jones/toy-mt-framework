@@ -9,9 +9,9 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
-#include "tbb/task.h"
 
 #include "ModuleWrapper.h"
+#include "WaitingTask.h"
 #include "Module.h"
 #include "Queues.h"
 #include "Event.h"
@@ -66,7 +66,7 @@ ModuleWrapper::~ModuleWrapper()
 }
 
 void 
-ModuleWrapper::prefetchAsync(tbb::task* iPrefetchDoneTask)
+ModuleWrapper::prefetchAsync(WaitingTask* iPrefetchDoneTask)
 {
   //NOTE: we must guarantee that we've entered the group before leaving
   // this routine OR that the group has already been entered by another thread

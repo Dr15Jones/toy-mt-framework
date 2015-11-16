@@ -14,15 +14,12 @@
 #include <vector>
 #include "Getter.h"
 
-namespace tbb {
-   class task;
-}
-
 namespace demo {
    class Event;
    typedef std::string DataKey;
    class GroupHolder;
    class ModuleWrapper;
+   class WaitingTask;
    
    enum ThreadType {
      kThreadUnsafe,
@@ -57,7 +54,7 @@ namespace demo {
       void registerMightGet(const std::string&, const std::string&);
    private:
       //only called by ModuleWrapper
-      void prefetchAsync(const Event&, tbb::task*);
+      void prefetchAsync(const Event&, WaitingTask*);
       
       std::string m_label;
       std::list<Getter> m_getters; //returns a pointer so need stable address

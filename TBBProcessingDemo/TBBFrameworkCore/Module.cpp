@@ -10,7 +10,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cassert>
-#include "tbb/task.h"
+#include "WaitingTask.h"
 #include "Module.h"
 #include "Getter.h"
 #include "Event.h"
@@ -22,7 +22,7 @@ Module::~Module()
 
 
 void
-Module::prefetchAsync(const Event& iEvent, tbb::task* iTask)
+Module::prefetchAsync(const Event& iEvent, WaitingTask* iTask)
 {
   assert(0!=iTask);
   //need to be sure that ref count isn't set to 0 immediately

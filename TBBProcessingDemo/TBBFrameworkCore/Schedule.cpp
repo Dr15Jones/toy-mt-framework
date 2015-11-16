@@ -130,7 +130,7 @@ Schedule::clone() {
 
 void 
 Schedule::aPathHasFinished(std::exception_ptr iException) {
-   if(!iException) {
+   if(iException) {
      *(m_fatalJobErrorOccuredPtr) = true;
    }
    assert(0!=m_pathsStillRunning);

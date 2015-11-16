@@ -26,11 +26,7 @@ void Path::runAsync(PathFilteringCallback iCallback) {
 
 
 void Path::doNextIfSuccess(bool iKeep, std::exception_ptr iException, size_t iPreviousIndex) {
-  //something bad happened
-  if(iException) {
-    m_callback(iException);
-  }
-  if(not *m_fatalJobErrorOccurredPtr && iKeep && iPreviousIndex+1 < m_filters.size()) {
+  if(not iException && not *m_fatalJobErrorOccurredPtr && iKeep && iPreviousIndex+1 < m_filters.size()) {
     //go to next
     runFilterAsync(iPreviousIndex+1);
   } else {

@@ -11,7 +11,7 @@
 
 #include <map>
 #include <string>
-#include "tbb/task.h"
+#include "WaitingTask.h"
 #include "Producer.h"
 #include "DataCache.h"
 
@@ -38,9 +38,9 @@ namespace demo {
     
     //asynchronously get data. The task will be decremented once the data has been gotten.
     // If the ref_count of the task reaches zero, it will be spawned.
-    void getAsync(Getter* iGetter, tbb::task* iTask) const;
+    void getAsync(Getter* iGetter, WaitingTask* iTask) const;
     
-    void mustWaitFor(unsigned int iModuleID, tbb::task* iTask) const;
+    void mustWaitFor(unsigned int iModuleID, WaitingTask* iTask) const;
     
     void put(const Producer*, const std::string&, int);
     void setIndex(unsigned long iIndex) {
@@ -66,7 +66,7 @@ namespace demo {
     };
 
   private:
-    void getAsyncImpl(Getter* iGetter, tbb::task* iTask) const;
+    void getAsyncImpl(Getter* iGetter, WaitingTask* iTask) const;
     
     
     std::map<LabelAndProduct,DataCache> m_lookupMap;
@@ -94,7 +94,7 @@ namespace demo {
       
       //asynchronously get data. The task will be decremented once the data has been gotten.
       // If the ref_count of the task reaches zero, it will be spawned.
-      void getAsync(Getter* iGetter, tbb::task* iTask) const;
+      void getAsync(Getter* iGetter, WaitingTask* iTask) const;
       
       void put(const Producer* iProd, const std::string& iLabel, int iValue) {
         m_event->put(iProd,iLabel,iValue);

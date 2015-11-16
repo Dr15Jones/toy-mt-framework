@@ -8,8 +8,8 @@
 
 #include <iostream>
 #include <sstream>
-#include "tbb/task.h"
 
+#include "WaitingTask.h"
 #include "PrefetchAndWorkWrapper.h"
 #include "ModuleWrapper.h"
 #include "ModuleThreadStack.h"
@@ -59,20 +59,24 @@ namespace {
 
 template<typename Task>
 void 
-PrefetchAndWorkWrapper::callWrapperDoWork(PrefetchAndWorkWrapper* wrapper) {
+PrefetchAndWorkWrapper::callWrapperDoWork(PrefetchAndWorkWrapper* wrapper, std::exception_ptr iPtr) {
+   if(iPtr) {
+      wrapper->doWork(iPtr);
+      return;
+   }
   unsigned int depModule = checkStackForDependencies(wrapper->m_wrapper->event()->transitionID(),wrapper->module_());
   if(kNoDependenciesReturnCode!= depModule) {
     wrapper->m_wrapper->event()->mustWaitFor(depModule,createTask<Task>(wrapper));
   } else {
     ModuleThreadStackSentry s(wrapper->m_wrapper->event()->transitionID(), wrapper->module_()->id());
-    wrapper->doWork();
+    wrapper->doWork(iPtr);
   }
 }
 
 namespace demo {
    namespace pnw {
 
-      class DoWorkTask : public tbb::task {
+      class DoWorkTask : public WaitingTask {
       public:
          DoWorkTask(PrefetchAndWorkWrapper* iWrapper):
          m_wrapper(iWrapper) {}
@@ -81,10 +85,15 @@ namespace demo {
           auto wrapper = this->m_wrapper;
           auto queue = wrapper->runQueue();
           tbb::task* nextTask=0;
+          std::exception_ptr ptr;
+          if(exceptionPtr() != nullptr) {
+             ptr = *exceptionPtr();
+          }
+          
           if(queue) {
-            nextTask = wrapper->runQueue()->pushAndGetNextTaskToRun([wrapper]{ PrefetchAndWorkWrapper::callWrapperDoWork<DoWorkTask>(wrapper); });
+            nextTask = wrapper->runQueue()->pushAndGetNextTaskToRun([wrapper,ptr]{ PrefetchAndWorkWrapper::callWrapperDoWork<DoWorkTask>(wrapper,ptr); });
           } else {
-            PrefetchAndWorkWrapper::callWrapperDoWork<DoWorkTask>(wrapper);
+            PrefetchAndWorkWrapper::callWrapperDoWork<DoWorkTask>(wrapper,ptr);
           }
           return nextTask;
         }
@@ -93,25 +102,30 @@ namespace demo {
          PrefetchAndWorkWrapper* m_wrapper;
       };
    
-      class NonThreadSafeDoWorkTask : public tbb::task {
+      class NonThreadSafeDoWorkTask : public WaitingTask {
       public:
          NonThreadSafeDoWorkTask(PrefetchAndWorkWrapper* iWrapper):
          m_wrapper(iWrapper) {}
       
          tbb::task* execute() {
             auto wrapper = m_wrapper;
-            auto nextTask = wrapper->runQueue()->pushAndGetNextTaskToRun([wrapper]{
+            std::exception_ptr ptr;
+            if(exceptionPtr() != nullptr) {
+               ptr = *exceptionPtr();
+            }
+            
+            auto nextTask = wrapper->runQueue()->pushAndGetNextTaskToRun([wrapper,ptr]{
                //This is running in the m_runQueue so we know this instance is
                // the one that has the 'lock'.
                wrapper->runQueue()->pause();
             
-               s_non_thread_safe_queue->push([wrapper]{
+               s_non_thread_safe_queue->push([wrapper,ptr]{
                   s_non_thread_safe_queue->pause();
                   //we need to leave the non_thread_safe_queue so if our 'doWork' requests
                   // data from another thread unsafe module that module can be given the 'lock'
                   // on the thread unsafe queue and run its task.
-                  spawn_task_from([wrapper]{
-                      PrefetchAndWorkWrapper::callWrapperDoWork<NonThreadSafeDoWorkTask>(wrapper);
+                  spawn_task_from([wrapper,ptr]{
+                      PrefetchAndWorkWrapper::callWrapperDoWork<NonThreadSafeDoWorkTask>(wrapper,ptr);
                       //now that our work is done, we allow other instances use the queues
                       s_non_thread_safe_queue->resume();
                       wrapper->runQueue()->resume();     

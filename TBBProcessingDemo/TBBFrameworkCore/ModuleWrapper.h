@@ -9,13 +9,13 @@
 #ifndef DispatchProcessingDemo_ModuleWrapper_h
 #define DispatchProcessingDemo_ModuleWrapper_h
 #include <atomic>
-#include <atomic>
 #include "SerialTaskQueue.h"
 
 namespace demo {
   class Module;
   class Event;
   class WaitableTask;
+  class WaitingTask;
 
   class ModuleWrapper {
   public:
@@ -35,7 +35,7 @@ namespace demo {
       m_requestedPrefetch.clear();
     }
 
-    void prefetchAsync(tbb::task* iPostPrefetchTask);
+    void prefetchAsync(WaitingTask* iPostPrefetchTask);
 
     SerialTaskQueue* runQueue() const {
       return m_runQueue.get();

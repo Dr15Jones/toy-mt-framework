@@ -10,13 +10,13 @@
 #define TBBProcessingDemo_WaitingTaskList_h
 
 #include <atomic>
-namespace tbb {
-   class task;
-}
+#include <exception>
+#include "WaitingTask.h"
+
 
 namespace demo {
    struct WaitNode {
-      tbb::task* m_task;
+      WaitingTask* m_task;
       std::atomic<WaitNode*> m_next;
       bool m_fromCache;
       
@@ -46,9 +46,12 @@ namespace demo {
       ~WaitingTaskList() {
          delete [] m_nodeCache;
       }
-      void add(tbb::task*);
+      void add(WaitingTask*);
 
-      void doneWaiting();
+      //Not thread safe
+      // If the task we were waiting on threw an exception
+      // iPtr will not be 'null'
+      void doneWaiting(std::exception_ptr iPtr);
       
       ///NOTE: reset is not thread safe
       void reset();
@@ -57,9 +60,10 @@ namespace demo {
       //safe to call from multiple threads
       void announce();
 
-      WaitNode* createNode(tbb::task* iTask);
+      WaitNode* createNode(WaitingTask* iTask);
       std::atomic<WaitNode*> m_head;
       WaitNode* m_nodeCache;
+      std::exception_ptr m_exceptionPtr; //guarded by m_waiting
       unsigned int m_nodeCacheSize;
       std::atomic<unsigned int> m_lastAssignedCacheIndex;
       std::atomic<bool> m_waiting;

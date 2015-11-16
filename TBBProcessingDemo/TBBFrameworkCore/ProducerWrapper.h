@@ -10,6 +10,7 @@
 #define DispatchProcessingDemo_ProducerWrapper_h
 #include <atomic>
 #include <memory>
+#include <exception>
 #include "ModuleWrapper.h"
 #include "PrefetchAndWorkWrapper.h"
 #include "WaitingTaskList.h"
@@ -27,7 +28,7 @@ namespace demo {
     ~ProducerWrapper();
     
     ///Pass task to be called when data has been produced
-    void doProduceAsync(tbb::task* iCallTaskWhenDone);
+    void doProduceAsync(WaitingTask* iCallTaskWhenDone);
 
     void reset();
 
@@ -35,7 +36,7 @@ namespace demo {
     
     unsigned int id() const {m_producer->id();}
   private:
-    void doWork() override;
+    void doWork(std::exception_ptr) override;
     Producer* producer() const;
 
     ProducerWrapper& operator=(const ProducerWrapper&);

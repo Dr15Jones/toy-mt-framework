@@ -10,6 +10,7 @@
 #include <sstream>
 #include <cassert>
 #include <atomic>
+#include <exception>
 
 
 #include "ProducerWrapper.h"
@@ -83,7 +84,7 @@ ProducerWrapper::reset()
 }
 
 void
-ProducerWrapper::doProduceAsync(tbb::task* iCallTaskWhenDone)
+ProducerWrapper::doProduceAsync(WaitingTask* iCallTaskWhenDone)
 {
   //if it has already run or we are not the first task
   // to request the Producer to be run then just return the
@@ -104,17 +105,24 @@ ProducerWrapper::doProduceAsync(tbb::task* iCallTaskWhenDone)
 }
 
 void
-ProducerWrapper::doWork()
+ProducerWrapper::doWork(std::exception_ptr iPtr)
 {
   if (not this->m_wasRun) {
-    //dispatch_debug(m_runQueue, "doProduceAsyncImpl %s %lu",producer()->label().c_str(),nonConstEvent->index());
-    //NOTE: in real application this would have a 'try..catch' around it
-    producer()->doProduce(*event());
+    std::exception_ptr exceptionPtr;
+    try {
+       if(iPtr) {
+          //throwing here guarantees
+          // that the proper tracing happens
+          std::rethrow_exception(iPtr);
+       }
+       producer()->doProduce(*event());
+     } catch(...) {
+        exceptionPtr = std::current_exception();
+     }
     //NOTE: needs a memory barrier to guarantee that
     // m_wasRun is never set until after doFilter is run
-    __sync_synchronize();
     this->m_wasRun = true;
     //std::cout <<" ProducerWrapper::doWork finished "<<producer()->label()<<std::endl;
-    m_waitingList.doneWaiting();
+    m_waitingList.doneWaiting(exceptionPtr);
   }
 }

@@ -261,6 +261,8 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
   m_eventLoopWaitTask->spawn_and_wait_for_all(*(new (tbb::task::allocate_root()) GetAndProcessOneEventTask{m_schedules[0]}));
 
   if(m_deferredExceptionPtrIsSet) {
-    std::rethrow_exception(m_deferredExceptionPtr);
+     auto temp = m_deferredExceptionPtr;
+     m_deferredExceptionPtr = std::exception_ptr();
+    std::rethrow_exception(temp);
   }
 }

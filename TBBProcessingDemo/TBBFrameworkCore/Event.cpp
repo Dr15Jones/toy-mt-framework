@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstring>
 #include <atomic>
+#include <exception>
 
 #include "Event.h"
 #include "Producer.h"
@@ -63,15 +64,18 @@ Event::get(const std::string& iModule,
    LookupMap::const_iterator it = m_lookupMap.find(LabelAndProduct(iModule.c_str(),iProduct.c_str()));
    assert(it != m_lookupMap.end());
    if(!it->second.wasCached()) {
-      tbb::empty_task* doneTask = new (tbb::task::allocate_root()) tbb::empty_task();
+      std::shared_ptr<EmptyWaitingTask> doneTask(new (tbb::task::allocate_root()) EmptyWaitingTask(), [](EmptyWaitingTask* t) {tbb::task::destroy(*t);});
       //Ref count needs to be 1 since WaitList will increment and decrement it again
       // doneTask->wait_for_all() waits for the task ref count to drop back to 1
       doneTask->increment_ref_count();
-      it->second.producer()->doProduceAsync(doneTask);
+      it->second.producer()->doProduceAsync(doneTask.get());
       //fprintf(stderr,"Waiting to get %s\n",iModule.c_str());
       doneTask->wait_for_all();
       //fprintf(stderr,"Done waiting to get %s\n",iModule.c_str());
-      tbb::task::destroy(*doneTask);
+      if(doneTask->exceptionPtr() != nullptr) {
+         std::rethrow_exception(*doneTask->exceptionPtr());
+      }
+      //tbb::task::destroy(*doneTask);
    }
    return it->second.value();
 }
@@ -98,7 +102,7 @@ Event::get(const Getter* iGetter) const
 
 //asynchronously get data
 void
-Event::getAsyncImpl(Getter* iGetter, tbb::task* iTaskDoneWithGet) const 
+Event::getAsyncImpl(Getter* iGetter, WaitingTask* iTaskDoneWithGet) const 
 {
    //PROBLEM??: Is map find thread safe?  It looks like if I call find via two different threads
    // that I sometimes get the answer for the first thread when I'm running the second thread
@@ -118,7 +122,7 @@ Event::getAsyncImpl(Getter* iGetter, tbb::task* iTaskDoneWithGet) const
    found->producer()->doProduceAsync(iTaskDoneWithGet);
 }
 
-void Event::mustWaitFor(unsigned int iModuleID, tbb::task* iTask) const {
+void Event::mustWaitFor(unsigned int iModuleID, WaitingTask* iTask) const {
    //std::cout <<"mustWaitFor "<<iModuleID<<" size "<<m_producers.size()<<std::endl;
    assert(iModuleID < m_producers.size());
    m_producers[iModuleID]->doProduceAsync(iTask);
@@ -126,7 +130,7 @@ void Event::mustWaitFor(unsigned int iModuleID, tbb::task* iTask) const {
 
 
 void 
-Event::getAsync(Getter* iGetter, tbb::task* iTaskDoneWithGet) const
+Event::getAsync(Getter* iGetter, WaitingTask* iTaskDoneWithGet) const
 {
   getAsyncImpl(iGetter, iTaskDoneWithGet);
 }
@@ -210,7 +214,7 @@ namespace demo {
      
       //asynchronously get data. The group will be incremented and will not be 
       // decremented until the attempt to get the data is finished
-      void Event::getAsync(Getter* iGetter, tbb::task* iTask) const {
+      void Event::getAsync(Getter* iGetter, WaitingTask* iTask) const {
          m_event->getAsync(iGetter, iTask);
       }      
    }

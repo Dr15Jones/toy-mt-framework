@@ -27,7 +27,7 @@ namespace demo {
     FilterWrapper* filter() const;
 
   private:
-    void doWork();
+    void doWork(std::exception_ptr) override;
     FilterWrapper* m_filter;
     Path* m_path;
     size_t m_index;

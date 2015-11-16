@@ -8,6 +8,7 @@
 
 #ifndef DispatchProcessingDemo_PrefetchAndWorkWrapper_h
 #define DispatchProcessingDemo_PrefetchAndWorkWrapper_h
+#include <exception>
 
 namespace demo {
   class ModuleWrapper;
@@ -20,7 +21,7 @@ namespace demo {
     PrefetchAndWorkWrapper(ModuleWrapper* iWrapper);
 
     template<typename Task>
-      static void callWrapperDoWork(PrefetchAndWorkWrapper*);
+      static void callWrapperDoWork(PrefetchAndWorkWrapper*,std::exception_ptr);
 
     SerialTaskQueue* runQueue() const;
   protected:
@@ -29,7 +30,7 @@ namespace demo {
   private:
     Module* module_() const;
     
-    virtual void doWork() =0;
+    virtual void doWork(std::exception_ptr) =0;
     
     ModuleWrapper* m_wrapper;
 
