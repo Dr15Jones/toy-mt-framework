@@ -1,4 +1,3 @@
-include_directories(${BOOST_INCLUDES})
 # See
 # http://stackoverflow.com/questions/1027247/best-way-to-specify-sourcefiles-in-cmake
 # including the discussion.
