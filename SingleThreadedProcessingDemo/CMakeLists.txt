@@ -16,7 +16,7 @@ set(CORE_FILES
 
 include_directories(BEFORE
     ${CMAKE_CURRENT_SOURCE_DIR}/SingleThreadedFrameworkCore)
-add_library(SingleThreadedFrameworkCore ${CORE_FILES})
+add_library(SingleThreadedFrameworkCore SHARED ${CORE_FILES})
 
 set(TEST_FILES
     SingleThreadedTestModules/BusyWaitPassFilter.cpp
@@ -36,7 +36,7 @@ set(TEST_FILES
 
 include_directories(BEFORE
     ${CMAKE_SOURCE_DIR}/BusyWaitCalibration)
-add_library(SingleThreadedTestModules ${TEST_FILES} SingleThreadedFrameworkCore)
+add_library(SingleThreadedTestModules SHARED ${TEST_FILES} SingleThreadedFrameworkCore)
 
 add_executable(SingleThreadedDemo main.cpp)
 target_link_libraries(SingleThreadedDemo SingleThreadedFrameworkCore SingleThreadedTestModules)

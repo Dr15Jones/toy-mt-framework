@@ -1,6 +1,8 @@
 # See
 # http://stackoverflow.com/questions/1027247/best-way-to-specify-sourcefiles-in-cmake
 # including the discussion.
+include_directories(${TBB_INCLUDE_DIR})
+
 set(CORE_FILES
     TBBFrameworkCore/Event.cpp
     TBBFrameworkCore/EventProcessor.cpp
@@ -25,7 +27,7 @@ set(CORE_FILES
 
 include_directories(BEFORE
     ${CMAKE_CURRENT_SOURCE_DIR}/TBBFrameworkCore)
-add_library(TBBFrameworkCore ${CORE_FILES})
+add_library(TBBFrameworkCore SHARED ${CORE_FILES})
 target_link_libraries(TBBFrameworkCore ${TBB_LIBRARIES})
 
 set(TEST_FILES
@@ -58,7 +60,7 @@ set(TEST_FILES
 
 include_directories(BEFORE
     ${CMAKE_SOURCE_DIR}/BusyWaitCalibration)
-add_library(TBBTestModules ${TEST_FILES})
+add_library(TBBTestModules SHARED ${TEST_FILES})
 target_link_libraries(TBBTestModules TBBFrameworkCore)
 
 if(CPPUNIT_FOUND)

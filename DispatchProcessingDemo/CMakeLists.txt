@@ -21,7 +21,7 @@ set(CORE_FILES
 
 include_directories(BEFORE 
     ${CMAKE_CURRENT_SOURCE_DIR}/DispatchFrameworkCore)
-add_library(DispatchFrameworkCore ${CORE_FILES})
+add_library(DispatchFrameworkCore SHARED ${CORE_FILES})
 
 set(TEST_FILES
     DispatchTestModules/BusyWaitPassFilter.cpp
@@ -49,7 +49,7 @@ set(TEST_FILES
 
 include_directories(BEFORE 
     ${CMAKE_SOURCE_DIR}/BusyWaitCalibration)
-add_library(DispatchTestModules ${TEST_FILES} DispatchFrameworkCore)
+add_library(DispatchTestModules SHARED ${TEST_FILES} DispatchFrameworkCore)
 
 add_executable(DispatchDemo main.cpp)
 target_link_libraries(DispatchDemo DispatchFrameworkCore DispatchTestModules)
