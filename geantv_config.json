@@ -1,0 +1,67 @@
+{
+ "process" :
+ {
+   "label" : "TEST",
+   "options" :
+   {
+     "nSimultaneousEvents" : 4,
+     "nThreads" : 12,
+     "busyWaitScaleFactor" : 2.2e+07
+   },
+   "source" :
+   {
+     "@type" : "demo::SimpleSource",
+     "iterations" : 3000
+   },
+   "filters" :
+   [
+     { "@label" : "output",
+       "@type" : "demo::BusyWaitPassFilter",
+       "threadType": "ThreadSafeBetweenModules",
+       "averageTime":0.01,
+       "toGet" : [
+               {"label":"digiA","product":""},
+               {"label":"digiB","product":""},
+               {"label":"digiC","product":""} ]
+     }
+   ],
+   "producers" :
+   [
+     { "@label" : "generator",
+       "@type" : "demo::BusyWaitProducer",
+       "threadType" : "ThreadSafeBetweenInstances",
+       "averageTime":0.01,
+       "toGet" :[]
+     },
+     { "@label" : "geantV",
+       "@type" : "demo::BusyWaitProducer",
+       "threadType" : "ThreadSafeBetweenInstances",
+       "averageTime":0.01,
+       "toGet" :[ {"label":"generator","product":""} ]
+     },
+     { "@label" : "digiA",
+       "@type" : "demo::BusyWaitProducer",
+       "threadType" : "ThreadSafeBetweenInstances",
+       "averageTime":0.01,
+       "toGet" :[ {"label":"geantV","product":""} ]
+     },
+     { "@label" : "digiB",
+       "@type" : "demo::BusyWaitProducer",
+       "threadType" : "ThreadSafeBetweenInstances",
+       "averageTime":0.01,
+       "toGet" :[ {"label":"geantV","product":""} ]
+     },
+     { "@label" : "digiC",
+       "@type" : "demo::BusyWaitProducer",
+       "threadType" : "ThreadSafeBetweenInstances",
+       "averageTime":0.01,
+       "toGet" :[ {"label":"geantV","product":""} ]
+     }
+   ],
+   "paths" :
+   {
+     "o":
+      [ "output"]
+   }
+ }
+}
