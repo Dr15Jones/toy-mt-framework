@@ -1,7 +1,7 @@
 # See
 # http://stackoverflow.com/questions/1027247/best-way-to-specify-sourcefiles-in-cmake
 # including the discussion.
-include_directories(${TBB_INCLUDE_DIR})
+include_directories(${TBB_INCLUDE_DIRS})
 
 set(CORE_FILES
     TBBFrameworkCore/Event.cpp
