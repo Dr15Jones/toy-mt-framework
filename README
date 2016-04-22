@@ -1,42 +1,51 @@
-This project is a simple demonstration of using libdispatch as the basis of a HEP multi-threaded framemework
+This project is a simple demonstration of using different threading technologies as the basis of a HEP multi-threaded framemework
 
 --------------------------------------
 COMPILING
-1) If you are on linux, you'll need to get and install a version of libdispatch
+1) You'll need to have available a version of boost which is used to parse the configuration files
+        http://www.boost.org
+2) To use the Intel Thread Building Block (TBB) framework, you'll need a version of tbb
+        https://www.threadingbuildingblocks.org
+3) create a subdirectory named build to hold the build products
+4) in the build directory, run the command
+        cmake -DBOOST_ROOT=<boost install directory> -DTBB_ROOT_DIR=<tbb install directory> ..
+5) Then just compile
+	make 
+
+You will wind up with four executables
+
+BusyWaitCalibration/BusyWaitCalibrate: 
+Used to calibrate how long it takes to run a simple integration function. This is used for tests where you want a module to actually do work (as apposed to just sleep).
+
+TBBProcessingDemo/TBBDemo:
+Processes configuration files to run trivial modules via TBB in a way analogous to a full HEP framework. Useful for testing scalability of the system.
+
+OpenMPProcessingDemo/OpenMPDemo:
+Processes configuration files to run trivial modules via OpenMP in a way analogous to a full HEP framework. Useful for testing scalability of the system.
+
+SingleThreadedDemo:
+Similar to the other *Demos exception only uses one thread and is implemented in the most trivial (and fastest) way possible. Used for timing comparisons with the same configurations passed to *Demos.
+
+NOTE:  The DispatchProcessingDemo which made use of Apple's Grand Central Dispatch system is no longer supported. It is possible to build it on Linux using
 	https://www.heily.com/trac/libdispatch
 which need libkqueue
 	http://mark.heily.com/book/export/html/52
-2) You will need to modify the Makefile and Makefile_single to point to your copy of the needed third party libraries
-3) Then just compile
-	make 
-	make -f Makefile_single
-	
-You will wind up with three executables
-
-BusyWaitCalibrate: 
-Used to calibrate how long it takes to run a simple integration function. This is used for tests where you want a module to actually do work (as apposed to just sleep).
-
-DispatchDemo:
-Processes configuration files to run trivial modules in a way analogous to a full HEP framework. Useful for testing scalability of the system.
-
-SingleThreadedDemo:
-Similar to DispatchDemo exception only uses one thread and is implemented in the most trivial (and fastest) way possible. Used for timing comparisons with the same configurations passed to DispatchDemo.
 
 --------------------------------------
 TESTING
 To see that the program works at all, you can run DispatchDemo using the simple test configuration
 
-./DispatchDemo DispatchProcessingDemo/test_config.json
+TBBProcessingDemo/TBBDemo ../TBBProcessingDemo/test_config.json
 
-This should generate an output like (From a Core 2 Duo MacBookPro)
+This should generate an output like 
 
-demo::PassFilter
-demo::PassFilter
-demo::PassFilter
-demo::ThreadSaferGetterFilter
-demo::BusyWaitProducer
-demo::BusyWaitProducer
-# simultaneous events:4 total # events:3000 cpu time:90.5964 real time:47.41 events/sec:63.2778
+demo::PassFilter first 0x5ca9a0
+demo::PassFilter second 0x5c6910
+demo::PassFilter third 0x5c5fe0
+demo::ThreadSaferGetterFilter fourth 0x5c6190
+demo::BusyWaitProducer alpha 0x5c6470
+demo::BusyWaitProducer beta 0x5c66e0
+# threads:24 # simultaneous events:4 total # events:3000 cpu time:182.333 real time:26.2779 events/sec:114.164
 
 --------------------------------------
 CALIBRATING
@@ -45,7 +54,7 @@ In order to simulate the effect of actually doing HEP type work, the code does a
 
 Running this program gives an output similar to the following
 
-./BusyWaitCalibrate 
+BusyWaitCalibration/BusyWaitCalibrate
 43.3487
 100000 0.004535 2.20507e+07
 195.367
@@ -92,7 +101,7 @@ Filters and Producers are configured with the mandatory parameters
 	'@type':  what C++ class to instantiate when creating the module
 Each C++ class type can then have its own parameters, although most accept
 	'eventTimes': how long the module runs for a given event. Specifying time for each event allows one to measure effects of correlations of times between modules. The units are seconds.
-	'threadType': used by DispatchDemo to decide how thread safe to treat the module. The allowed values are
+	'threadType': used by TBBDemo and OpenMPDemo to decide how thread safe to treat the module. The allowed values are
 		ThreadSafeBetweenInstances: the same instance of a module can be passed multiple events simultaneously
 		ThreadSafeBetweenModules: the same instance of a module can only handle one event at a time but it does not interact with any other module
 		ThreadUnsafe: the module can not be run at the same time as other 'ThreadUnsafe' modules
