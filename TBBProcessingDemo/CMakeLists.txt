@@ -45,6 +45,7 @@ set(TEST_FILES
   TBBTestModules/EventTimesSyncGetSleepingProducer.cpp
   TBBTestModules/FastPassFilter.cpp
   TBBTestModules/FastProducer.cpp
+  TBBTestModules/GeantVProducer.cpp
   TBBTestModules/PassFilter.cpp
   TBBTestModules/SleepingPassFilter.cpp
   TBBTestModules/SleepingProducer.cpp

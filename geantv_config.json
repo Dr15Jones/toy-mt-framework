@@ -34,9 +34,7 @@
        "toGet" :[]
      },
      { "@label" : "geantV",
-       "@type" : "demo::BusyWaitProducer",
-       "threadType" : "ThreadSafeBetweenInstances",
-       "averageTime":0.01,
+       "@type" : "demo::GeantVProducer",
        "toGet" :[ {"label":"generator","product":""} ]
      },
      { "@label" : "digiA",
