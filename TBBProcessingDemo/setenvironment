@@ -1,0 +1,5 @@
+setup gcc v4_9_3
+setup tbb v4_4_3 -q e9:prof
+setup cppunit v1_12_1c -q e9:prof
+setup boost v1_57_0a -q e9:prof
+LD_LIBRARY_PATH=$PWD:$TBB_LIB:$GCC_FQ_DIR/lib64

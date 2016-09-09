@@ -18,6 +18,14 @@ include_directories(BEFORE
     ${CMAKE_CURRENT_SOURCE_DIR}/SingleThreadedFrameworkCore)
 add_library(SingleThreadedFrameworkCore SHARED ${CORE_FILES})
 
+install(TARGETS SingleThreadedFrameworkCore
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  COMPONENT LIBRARY
+  )
+
+
 set(TEST_FILES
     SingleThreadedTestModules/BusyWaitPassFilter.cpp
     SingleThreadedTestModules/BusyWaitProducer.cpp
@@ -37,6 +45,20 @@ set(TEST_FILES
 include_directories(BEFORE
     ${CMAKE_SOURCE_DIR}/BusyWaitCalibration)
 add_library(SingleThreadedTestModules SHARED ${TEST_FILES} SingleThreadedFrameworkCore)
+install(TARGETS  SingleThreadedTestModules
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  COMPONENT LIBRARY
+  )
 
 add_executable(SingleThreadedDemo main.cpp)
 target_link_libraries(SingleThreadedDemo SingleThreadedFrameworkCore SingleThreadedTestModules)
+
+install(TARGETS SingleThreadedDemo SingleThreadedFrameworkCore SingleThreadedTestModules
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  COMPONENT Runtime
+  )
+

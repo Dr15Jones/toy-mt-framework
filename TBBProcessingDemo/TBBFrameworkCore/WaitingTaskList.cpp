@@ -7,10 +7,10 @@
  *
  */
 
-#include "WaitingTaskList.h"
 #include <iostream>
 #include <cassert>
 #include <memory>
+#include "WaitingTaskList.h"
 #include "ThreadingHelpers.h"
 
 using namespace demo;

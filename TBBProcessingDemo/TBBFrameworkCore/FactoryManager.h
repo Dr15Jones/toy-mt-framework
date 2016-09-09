@@ -27,7 +27,7 @@ namespace demo {
       if(itFind != fm->m_factories.end()) {
         return itFind->second->create(iConfig);
       }
-      return std::auto_ptr<T>();
+      return std::unique_ptr<T>();
     }
     
     static void registerFactory(const std::string& iType, FactoryBase<T>* iFactory) {

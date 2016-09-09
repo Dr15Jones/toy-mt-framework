@@ -22,7 +22,6 @@
 
 #include <errno.h>
 
-
 int main (int argc, char * const argv[]) {
   
   //demo::s_thread_safe_queue = dispatch_get_global_queue(0, 0);
@@ -48,7 +47,7 @@ int main (int argc, char * const argv[]) {
   
   
   busy_wait_scale_factor = pConfig.get<double>("process.options.busyWaitScaleFactor",2.2e+07);
-  
+
   boost::property_tree::ptree& filters=pConfig.get_child("process.filters");
   for(const boost::property_tree::ptree::value_type& f : filters) {
     std::unique_ptr<demo::Filter> pF = demo::FactoryManager<demo::Filter>::create(f.second.get<std::string>("@type"),f.second);
@@ -86,6 +85,9 @@ int main (int argc, char * const argv[]) {
   }
 
   ep.finishSetup();
+
+  std::cout << "busy_wait_scale_factor = "<<busy_wait_scale_factor<<std::endl;
+
   {
     struct timeval startCPUTime;
     
@@ -102,6 +104,7 @@ int main (int argc, char * const argv[]) {
     
     //ep.processAll(2);
     unsigned int nEvents = pConfig.get<unsigned int>("process.options.nSimultaneousEvents");
+    std::cout <<"# threads:"<<nThreads<<" # simultaneous events:"<<nEvents<<" total # events:"<<iterations<<std::endl;
     try {
        ep.processAll(nEvents);
     } catch(std::exception const& iException) {

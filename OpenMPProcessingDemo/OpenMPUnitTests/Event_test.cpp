@@ -358,7 +358,7 @@ void Event_test::simultaneousBetweenInstancesTwoEvents()
   
   event1.addProducer(at);
   
-  std::auto_ptr<demo::Event> event2(event1.clone());
+  std::unique_ptr<demo::Event> event2(event1.clone());
   event2->setIndex(2);
 
   const demo::Event* events[2]={&event1,event2.get()};
@@ -380,7 +380,7 @@ void Event_test::simultaneousBetweenModulesTwoEvents()
   event1.setIndex(1);
   
   event1.addProducer(at);
-  std::auto_ptr<demo::Event> event2(event1.clone());
+  std::unique_ptr<demo::Event> event2(event1.clone());
   event2->setIndex(2);
 
   const demo::Event* events[2]={&event1,event2.get()};
@@ -402,7 +402,7 @@ void Event_test::simultaneousThreadUnsafeTwoEvents()
   event1.setIndex(3);
   
   event1.addProducer(at);
-  std::auto_ptr<demo::Event> event2(event1.clone());
+  std::unique_ptr<demo::Event> event2(event1.clone());
   event2->setIndex(4);
 
   const demo::Event* events[2]={&event1,event2.get()};

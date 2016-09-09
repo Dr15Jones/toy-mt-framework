@@ -4,7 +4,7 @@
    "label" : "TEST",
    "options" :
    {
-     "nSimultaneousEvents" : 4,
+     "nSimultaneousEvents" : 8,
      "busyWaitScaleFactor" : 2.2e+07
    },
    "source" :

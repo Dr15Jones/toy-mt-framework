@@ -1,0 +1,1 @@
+perl -p -i.bak -w -e 's|: [0-9]*\}|: 20\}| if m/nSimultaneousEvents/;' *.config

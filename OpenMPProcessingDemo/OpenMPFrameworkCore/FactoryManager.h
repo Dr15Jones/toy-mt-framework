@@ -21,13 +21,13 @@ namespace demo {
   template <typename T>
   class FactoryManager {
   public:
-    static std::auto_ptr<T> create(const std::string& iType, const boost::property_tree::ptree& iConfig) {
+    static std::unique_ptr<T> create(const std::string& iType, const boost::property_tree::ptree& iConfig) {
       FactoryManager<T>* fm = instance();
       typename std::map<std::string, boost::shared_ptr<FactoryBase<T> > >::iterator itFind = fm->m_factories.find(iType);
       if(itFind != fm->m_factories.end()) {
         return itFind->second->create(iConfig);
       }
-      return std::auto_ptr<T>();
+      return std::unique_ptr<T>();
     }
     
     static void registerFactory(const std::string& iType, FactoryBase<T>* iFactory) {

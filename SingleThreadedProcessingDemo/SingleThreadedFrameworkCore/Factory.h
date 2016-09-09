@@ -16,7 +16,7 @@ namespace demo {
   public:
     FactoryBase() {}
     
-    virtual std::auto_ptr<T> create(const boost::property_tree::ptree&) const =0;
+    virtual std::unique_ptr<T> create(const boost::property_tree::ptree&) const =0;
     
   };
   
@@ -25,8 +25,8 @@ namespace demo {
   public:
     Factory() {}
     
-    virtual std::auto_ptr<T> create(const boost::property_tree::ptree& iPTree) const {
-      return std::auto_ptr<T>(new U(iPTree) );
+    virtual std::unique_ptr<T> create(const boost::property_tree::ptree& iPTree) const {
+      return std::unique_ptr<T>(new U(iPTree) );
     }
   };
 }

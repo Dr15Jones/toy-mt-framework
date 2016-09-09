@@ -1,0 +1,1 @@
+cmake ../toy-mt-framework -DCMAKE_C_COMPILER=`which gcc` -DCMAKE_CXX_COMPILER=`which g++` -DCMAKE_CXX_FLAGS="-std=c++1y -g " -DBoost_INCLUDE_DIR=$BOOST_INC -DTBB_INCLUDE_DIR=$TBB_INC
