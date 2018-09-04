@@ -44,7 +44,7 @@ namespace demo {
   public:
      EmptyWaitingTask() = default;
      
-     tbb::task* execute() override {}
+     tbb::task* execute() override { return nullptr;}
   };
 }
 

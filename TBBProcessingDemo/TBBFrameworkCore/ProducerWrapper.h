@@ -34,7 +34,7 @@ namespace demo {
 
     bool wasRun() const {return m_wasRun;}
     
-    unsigned int id() const {m_producer->id();}
+    unsigned int id() const {return m_producer->id();}
   private:
     void doWork(std::exception_ptr) override;
     Producer* producer() const;
