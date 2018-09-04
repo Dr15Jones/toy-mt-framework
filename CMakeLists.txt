@@ -9,7 +9,7 @@ set(Boost_NO_BOOST_CMAKE ON)
 find_package(Boost)
 include_directories(${Boost_INCLUDE_DIR})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 add_subdirectory(BusyWaitCalibration)
 # nothing ever sets DISPATCH_FOUND (!)
