@@ -103,7 +103,7 @@ int main (int argc, char * const argv[]) {
   boost::property_tree::ptree& filters=pConfig.get_child("process.filters");
   for(const boost::property_tree::ptree::value_type& f : filters) {
     std::cout << f.second.get<std::string>("@type")<<std::endl;
-    std::auto_ptr<demo::Filter> pF = demo::FactoryManager<demo::Filter>::create(f.second.get<std::string>("@type"),f.second);
+    auto pF = demo::FactoryManager<demo::Filter>::create(f.second.get<std::string>("@type"),f.second);
     if(pF.get() != 0) {
       ep.addFilter(pF.release());
     } else {
@@ -115,7 +115,7 @@ int main (int argc, char * const argv[]) {
   boost::property_tree::ptree& producers=pConfig.get_child("process.producers");
   for(const boost::property_tree::ptree::value_type& p : producers) {
     std::cout << p.second.get<std::string>("@type")<<std::endl;
-    std::auto_ptr<demo::Producer> pP = demo::FactoryManager<demo::Producer>::create(p.second.get<std::string>("@type"),p.second);
+    auto pP = demo::FactoryManager<demo::Producer>::create(p.second.get<std::string>("@type"),p.second);
     if(pP.get() != 0) {
       ep.addProducer(pP.release());
     } else {

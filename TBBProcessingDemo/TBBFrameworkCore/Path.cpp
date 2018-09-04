@@ -8,7 +8,8 @@
 
 #include <iostream>
 
-#include <assert.h>
+#include <cassert>
+#include <memory>
 #include "Path.h"
 #include "FilterWrapper.h"
 
@@ -54,7 +55,7 @@ void Path::addFilter(FilterWrapper* iFilter,Event*iEvent) {
 
   
 Path* Path::clone(const std::vector<std::shared_ptr<FilterWrapper> >& iWrappers, Event*iEvent) const {
-  std::auto_ptr<Path> newPath(new Path);
+  auto newPath = std::make_unique<Path>();
   newPath->m_filters.reserve(m_filters.size());
   for (const auto& fw: m_filters) {
     bool found = false;

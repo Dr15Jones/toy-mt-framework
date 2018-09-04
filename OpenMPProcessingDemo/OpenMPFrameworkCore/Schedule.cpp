@@ -8,7 +8,8 @@
 
 #include <iostream>
 
-#include <assert.h>
+#include <cassert>
+#include <memory>
 
 #include "Schedule.h"
 #include "Path.h"
@@ -77,7 +78,7 @@ Schedule::addPath(Path* iPath) {
 
 void
 Schedule::addPath(const std::vector<std::string>& iPath) {
-  std::auto_ptr<Path> newPath(new Path);
+  auto newPath = std::make_unique<Path>();
   for(const std::string& name: iPath) {
     FilterWrapper* fw = findFilter(name);
     if(0!=fw) {

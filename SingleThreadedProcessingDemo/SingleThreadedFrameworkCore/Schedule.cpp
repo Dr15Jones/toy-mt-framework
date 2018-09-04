@@ -34,7 +34,7 @@ Schedule::addPath(Path* iPath) {
 
 void
 Schedule::addPath(const std::vector<std::string>& iPath) {
-  std::auto_ptr<Path> newPath(new Path);
+  auto newPath =std::make_unique<Path>();
   for(const std::string& name: iPath) {
     Filter* fw = findFilter(name);
     if(0!=fw) {
