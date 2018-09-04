@@ -17,15 +17,15 @@
 using namespace demo;
 
 inline
-boost::shared_ptr<Filter>
+std::shared_ptr<Filter>
 FilterWrapper::filter() const
 {
   return m_filter;
 }
 
-FilterWrapper::FilterWrapper(boost::shared_ptr<Filter> iFilter):
+FilterWrapper::FilterWrapper(std::shared_ptr<Filter> iFilter):
 ModuleWrapper(iFilter.get()),
-m_filter(iFilter),
+m_filter(std::move(iFilter)),
 m_keep(false),
 m_wasRun(false)
 {

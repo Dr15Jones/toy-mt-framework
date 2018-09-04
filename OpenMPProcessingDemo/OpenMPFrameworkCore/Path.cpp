@@ -38,12 +38,12 @@ void Path::addFilter(FilterWrapper* iFilter) {
   m_filters.push_back(iFilter);
 }
 
-Path* Path::clone(const std::vector<boost::shared_ptr<FilterWrapper> >& iWrappers) const {
+Path* Path::clone(const std::vector<std::shared_ptr<FilterWrapper> >& iWrappers) const {
   auto newPath = std::make_unique<Path>();
   newPath->m_filters.reserve(m_filters.size());
   for (const FilterWrapper* fw: m_filters) {
     bool found = false;
-     for(boost::shared_ptr<FilterWrapper> newFw: iWrappers) {
+     for(auto& newFw: iWrappers) {
       if(newFw->label() == fw->label()) {
         found = true;
          newPath->m_filters.push_back(newFw.get());

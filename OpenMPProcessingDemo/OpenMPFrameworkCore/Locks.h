@@ -10,7 +10,7 @@
 
 #ifndef OpenMPProcessingDemo_Locks_h
 #define OpenMPProcessingDemo_Locks_h
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #if defined(PARALLEL_MODULES)
 #include "OMPLock.h"
 #else
@@ -19,9 +19,9 @@
 
 namespace demo {
 #if defined(PARALLEL_MODULES)
-  extern boost::shared_ptr<OMPLock> s_thread_unsafe_lock;
+  extern std::shared_ptr<OMPLock> s_thread_unsafe_lock;
 #else
-  extern boost::shared_ptr<OMPLock> s_thread_unsafe_lock;
+  extern std::shared_ptr<OMPLock> s_thread_unsafe_lock;
 #endif
 
 }

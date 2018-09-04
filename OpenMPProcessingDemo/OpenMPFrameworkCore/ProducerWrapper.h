@@ -12,7 +12,7 @@
 #if defined(PARALLEL_MODULES)  
 #include <atomic>
 #endif
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "ModuleWrapper.h"
 
 namespace demo {
@@ -34,7 +34,7 @@ namespace demo {
   private:
     ProducerWrapper& operator=(const ProducerWrapper&) = delete;
     
-    boost::shared_ptr<Producer> m_producer;
+    std::shared_ptr<Producer> m_producer;
 #if defined(PARALLEL_MODULES)  
     std::atomic<bool> m_wasRun;
 #else

@@ -13,7 +13,7 @@
 #if defined(PARALLEL_MODULES)  
 #include <atomic>
 #endif
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "ModuleWrapper.h"
 #include "Filter.h"
 
@@ -21,7 +21,7 @@ namespace demo {
   class Event;
   class FilterWrapper: public ModuleWrapper {
   public:
-    FilterWrapper(boost::shared_ptr<Filter> iFilter);
+    FilterWrapper(std::shared_ptr<Filter> iFilter);
     FilterWrapper(const FilterWrapper* iWrapper);
     
     void reset();
@@ -30,11 +30,11 @@ namespace demo {
     bool doFilter(Event&);
     
     bool wasRun() const { return m_wasRun;}
-    boost::shared_ptr<Filter> filter() const;
+    std::shared_ptr<Filter> filter() const;
     
   private:
     FilterWrapper(const FilterWrapper&) = delete;
-    boost::shared_ptr<Filter> m_filter;
+    std::shared_ptr<Filter> m_filter;
     bool m_keep;
 #if defined(PARALLEL_MODULES)  
     std::atomic<bool> m_wasRun;

@@ -19,16 +19,16 @@ using namespace demo;
 
 static
 #if defined(PARALLEL_MODULES)
-boost::shared_ptr<OMPLock>
+std::shared_ptr<OMPLock>
 #else
-boost::shared_ptr<OMLock>
+std::shared_ptr<OMLock>
 #endif
 chooseLock(unsigned int iType)
 {
 #if defined(PARALLEL_MODULES)
-  return iType != kThreadUnsafe? boost::shared_ptr<OMPLock>(new OMPLock{}) : s_thread_unsafe_lock;
+  return iType != kThreadUnsafe? std::shared_ptr<OMPLock>(new OMPLock{}) : s_thread_unsafe_lock;
 #else
-  boost::shared_ptr<OMPLock> returnValue;
+  std::shared_ptr<OMPLock> returnValue;
   switch(iType) {
     case kThreadUnsafe:
     {
@@ -37,7 +37,7 @@ chooseLock(unsigned int iType)
     }
     case kThreadSafeBetweenModules:
     {
-      returnValue = boost::shared_ptr<OMLock>(new OMPLock{});
+      returnValue = std::shared_ptr<OMLock>(new OMPLock{});
       break;
     }
     case kThreadSafeBetweenInstances:
@@ -77,7 +77,7 @@ ModuleWrapper::ModuleWrapper(const ModuleWrapper* iOther):
   if(m_module->threadType() == kThreadSafeBetweenInstances) {
     //the same instance can be called reentrantly so each Schedule can have
     // its own lock for each instance rather than having to share one lock
-    m_runLock = boost::shared_ptr<OMPLock>(new OMPLock{});
+    m_runLock = std::shared_ptr<OMPLock>(new OMPLock{});
   } else {
     m_runLock = iOther->m_runLock;
   }

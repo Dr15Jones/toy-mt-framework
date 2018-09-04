@@ -10,7 +10,7 @@
 #define DispatchProcessingDemo_Path_h
 #include <vector>
 #include <atomic>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 
 namespace demo {
@@ -32,7 +32,7 @@ namespace demo {
     
     void addFilter(FilterWrapper* iFilter);
     
-    Path* clone(const std::vector<boost::shared_ptr<FilterWrapper> >& iWrappers) const;
+    Path* clone(const std::vector<std::shared_ptr<FilterWrapper> >& iWrappers) const;
     
   private:
     Path(const Path& iOther) = delete;

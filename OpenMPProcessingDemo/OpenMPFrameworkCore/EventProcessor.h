@@ -10,9 +10,10 @@
 #define DispatchProcessingDemo_EventProcessor_h
 #include <vector>
 #include <atomic>
+#include <memory>
 #include "Schedule.h"
 #include "OMPLock.h"
-#include <boost/shared_ptr.hpp>
+
 
 namespace demo {
   class Source;
@@ -36,13 +37,13 @@ namespace demo {
   private:
     void get_and_process_events(Schedule&);
     
-    boost::shared_ptr<Source> m_source;
+    std::shared_ptr<Source> m_source;
 #if defined(PARALLEL_MODULES)
     OMPLock m_sourceLock;
 #else
     OMPLock m_sourceLock;
 #endif
-    std::vector<boost::shared_ptr<Schedule>> m_schedules;
+    std::vector<std::shared_ptr<Schedule>> m_schedules;
     std::atomic<bool> m_fatalJobErrorOccured;    
   };
 

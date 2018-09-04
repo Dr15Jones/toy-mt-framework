@@ -11,7 +11,7 @@
 #include <vector>
 #include <string>
 #include <atomic>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "Path.h"
 #include "Event.h"
 
@@ -51,8 +51,8 @@ namespace demo {
     Schedule(Event*);
     void addPath(Path* iPath);
     Event m_event;
-    std::vector<boost::shared_ptr<Path>> m_paths;
-    std::vector<boost::shared_ptr<FilterWrapper> > m_filters;
+    std::vector<std::shared_ptr<Path>> m_paths;
+    std::vector<std::shared_ptr<FilterWrapper> > m_filters;
     std::atomic<bool>* m_fatalJobErrorOccuredPtr;
   };
 }

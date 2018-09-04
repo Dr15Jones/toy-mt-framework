@@ -7,6 +7,7 @@
 //
 
 #include <iostream>
+#include <memory>
 #include "EventProcessor.h"
 #include "Schedule.h"
 #include "Event.h"
@@ -19,7 +20,7 @@ EventProcessor::EventProcessor():
   m_source(),
   m_fatalJobErrorOccured(false)
   {
-    m_schedules.push_back( boost::shared_ptr<Schedule>(new Schedule()));
+    m_schedules.push_back( std::shared_ptr<Schedule>(new Schedule()));
     m_schedules[0]->setFatalJobErrorOccurredPointer(&m_fatalJobErrorOccured);
   }
 
@@ -29,7 +30,7 @@ EventProcessor::~EventProcessor()
 
 void 
 EventProcessor::setSource(Source* iSource) {
-  m_source = boost::shared_ptr<Source>(iSource);
+  m_source = std::shared_ptr<Source>(iSource);
 }
 
 void
@@ -77,7 +78,7 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
     #pragma omp single
     {
       for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
-        boost::shared_ptr<Schedule> scheduleTemp{m_schedules[0]->clone()};
+        std::shared_ptr<Schedule> scheduleTemp{m_schedules[0]->clone()};
         m_schedules.push_back(scheduleTemp);
         auto temp = scheduleTemp.get();
 	#pragma omp task untied firstprivate(temp)

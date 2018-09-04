@@ -34,11 +34,11 @@ m_event(iOther.m_event),
 m_fatalJobErrorOccuredPtr(iOther.m_fatalJobErrorOccuredPtr)
 {
   m_filters.reserve(iOther.m_filters.size());
-  for(boost::shared_ptr<FilterWrapper> fw: iOther.m_filters) {
-    m_filters.push_back(boost::shared_ptr<FilterWrapper>(new FilterWrapper(fw.get())));
+  for(std::shared_ptr<FilterWrapper> fw: iOther.m_filters) {
+    m_filters.push_back(std::shared_ptr<FilterWrapper>(new FilterWrapper(fw.get())));
   }
   
-  for(std::vector<boost::shared_ptr<Path>>::const_iterator it = iOther.m_paths.begin(), itEnd = iOther.m_paths.end();
+  for(std::vector<std::shared_ptr<Path>>::const_iterator it = iOther.m_paths.begin(), itEnd = iOther.m_paths.end();
       it != itEnd;
       ++it) {
     addPath((*it)->clone(m_filters));
@@ -72,7 +72,7 @@ Schedule::process() {
 
 void 
 Schedule::addPath(Path* iPath) {
-  m_paths.push_back(boost::shared_ptr<Path>(iPath));
+  m_paths.push_back(std::shared_ptr<Path>(iPath));
   iPath->setFatalJobErrorOccurredPointer(m_fatalJobErrorOccuredPtr);
 }
 
@@ -93,7 +93,7 @@ Schedule::addPath(const std::vector<std::string>& iPath) {
 
 void
 Schedule::addFilter(Filter* iFilter) {
-  m_filters.push_back(boost::shared_ptr<FilterWrapper>(new FilterWrapper(boost::shared_ptr<Filter>(iFilter))));
+  m_filters.push_back(std::shared_ptr<FilterWrapper>(new FilterWrapper(std::shared_ptr<Filter>(iFilter))));
 }
 
 void 
@@ -114,7 +114,7 @@ Schedule::event()
 
 FilterWrapper*
 Schedule::findFilter(const std::string& iLabel){
-  for(boost::shared_ptr<FilterWrapper> fw: m_filters) {
+  for(auto& fw: m_filters) {
     if (fw->label() == iLabel) {
       return fw.get();
     }

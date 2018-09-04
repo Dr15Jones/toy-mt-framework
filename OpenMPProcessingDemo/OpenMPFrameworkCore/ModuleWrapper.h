@@ -12,7 +12,7 @@
 #if defined(PARALLEL_MODULES)
 #include <atomic>
 #endif
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #if defined(PARALLEL_MODULES)
 #include "OMPLock.h"
 #else
@@ -52,10 +52,10 @@ namespace demo {
     Module* m_module;
 #if defined(PARALLEL_MODULES)
     OMPLock m_prefetchLock;
-    boost::shared_ptr<OMPLock> m_runLock;
+    std::shared_ptr<OMPLock> m_runLock;
     std::atomic<bool> m_donePrefetch;
 #else
-    boost::shared_ptr<OMPLock> m_runLock;
+    std::shared_ptr<OMPLock> m_runLock;
 #endif
   };
   
