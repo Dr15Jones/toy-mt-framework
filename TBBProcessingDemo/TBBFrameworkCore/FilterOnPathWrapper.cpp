@@ -26,39 +26,20 @@ FilterOnPathWrapper::filter() const
 }
 
 FilterOnPathWrapper::FilterOnPathWrapper(FilterWrapper* iFilter,
-                                         Path* iPath,
                                          size_t iIndex):
-demo::PrefetchAndWorkWrapper(iFilter),
-m_filter(iFilter),m_path(iPath),m_index(iIndex)
+m_filter(iFilter),m_index(iIndex)
 {
 }
 
-void
-FilterOnPathWrapper::doWork(std::exception_ptr iPtr)
-{
-  std::exception_ptr eptr;
-  bool keep = false;
-  try {
-    if( iPtr ) {
-       std::rethrow_exception(iPtr);
-    }
-    keep = m_filter->doFilter();
-  }catch(...) {
-    eptr = std::current_exception();
-  }
-  m_path->doNextIfSuccess(keep, eptr, m_index);
+bool
+FilterOnPathWrapper::checkResultsOfRunFilter() {
+  return m_filter->shouldKeep();
 }
 
 void
-FilterOnPathWrapper::filterAsync()
+FilterOnPathWrapper::filterAsync(WaitingTask* iTask)
 {
-  if(not m_filter->wasRun()) {    
-    doPrefetchAndWork();
-  } else {
-    //Still need to cal 'doWork' since that is where the
-    // path gets informed that the work was done
-    this->doWork(std::exception_ptr{});
-  }
+  m_filter->doFilterAsync(iTask);
 }
 
 

@@ -13,6 +13,7 @@
 #include "Schedule.h"
 #include "Path.h"
 #include "FilterWrapper.h"
+#include "WaitingTaskHolder.h"
 #include "task_helpers.h"
 
 using namespace demo;
@@ -20,26 +21,17 @@ using namespace demo;
 
 Schedule::Schedule()
   : m_event(),
-  m_pathsStillRunning(0),
-  m_pathDoneCallback(this),
-  m_scheduleCallback(),
   m_fatalJobErrorOccuredPtr(0){
 }
 
 Schedule::Schedule(Event* iEvent):
 m_event(*iEvent),
-m_pathsStillRunning(0),
-m_pathDoneCallback(this),
-m_scheduleCallback(),
 m_fatalJobErrorOccuredPtr(0)
 {  
 }
 
 Schedule::Schedule(const Schedule& iOther):
 m_event(iOther.m_event),
-m_pathsStillRunning(0),
-m_pathDoneCallback(this),
-m_scheduleCallback(),
 m_fatalJobErrorOccuredPtr(iOther.m_fatalJobErrorOccuredPtr)
 {
   m_filters.reserve(iOther.m_filters.size());
@@ -54,20 +46,29 @@ m_fatalJobErrorOccuredPtr(iOther.m_fatalJobErrorOccuredPtr)
 }
 
 void 
-Schedule::process(ScheduleFilteringCallback iCallback) {
-  m_scheduleCallback = iCallback;
+Schedule::processAsync(WaitingTaskHolder iCallback) {
   //printf("Schedule::process\n");
   reset();
+
   if(!m_paths.empty()) {
+
+    auto allPathsDone = make_waiting_task(tbb::task::allocate_root(),
+                                          [this, h=std::move(iCallback)](std::exception_ptr* const iExcept) mutable
+                                          {
+                                            if(iExcept) {
+                                              *(m_fatalJobErrorOccuredPtr) = true;
+                                              h.doneWaiting(*iExcept);
+                                            } else {
+                                              h.doneWaiting(std::exception_ptr{});
+                                            }
+                                          });
+    WaitingTaskHolder tmp(allPathsDone);
      
-    m_pathsStillRunning=m_paths.size();
     for(auto& path : m_paths) {
-      Schedule* pThis = this; 
-      Path* pPath = path.get();
-      spawn_task_from([pPath,pThis]{pThis->processPresentPath(pPath);});
+      path->runAsync( allPathsDone );
     }
   } else {
-    m_scheduleCallback(std::exception_ptr{});
+    iCallback.doneWaiting(std::exception_ptr{});
   }
 }
 
@@ -128,32 +129,4 @@ Schedule::clone() {
   return new Schedule(*this);
 }
 
-void 
-Schedule::aPathHasFinished(std::exception_ptr iException) {
-   if(iException) {
-     *(m_fatalJobErrorOccuredPtr) = true;
-   }
-   assert(0!=m_pathsStillRunning);
-   if(0== --m_pathsStillRunning) {
-     m_scheduleCallback(iException);
-   }
-}
-
-
-void
-PathFilteringCallback::operator()(std::exception_ptr iException) const
-{
-  m_schedule->aPathHasFinished(iException);
-}
-
-
-void 
-Schedule::processPresentPath(Path* iPath) {
-  //printf("Schedule::processPresentPath %u\n",iIndex);      
-  if(*(m_fatalJobErrorOccuredPtr)) {
-    m_scheduleCallback(std::exception_ptr{} );
-    return;
-  }
-  iPath->runAsync(m_pathDoneCallback);
-}
 

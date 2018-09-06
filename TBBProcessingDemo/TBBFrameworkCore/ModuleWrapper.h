@@ -10,18 +10,17 @@
 #define DispatchProcessingDemo_ModuleWrapper_h
 #include <atomic>
 #include "SerialTaskQueue.h"
+#include "WaitingTaskList.h"
 
 namespace demo {
   class Module;
   class Event;
-  class WaitableTask;
-  class WaitingTask;
 
   class ModuleWrapper {
   public:
     ModuleWrapper(Module* iModule,
                   Event* iEvent);
-    ~ModuleWrapper();
+    virtual ~ModuleWrapper();
     
     Module* module() const {
       return m_module;
@@ -32,10 +31,12 @@ namespace demo {
     }
     
     void reset() {
-      m_requestedPrefetch.clear();
+      m_workStarted = false;
+      m_waitingTasks.reset();
     }
 
-    void prefetchAsync(WaitingTask* iPostPrefetchTask);
+
+    void doWorkAsync(WaitingTask*);
 
     SerialTaskQueue* runQueue() const {
       return m_runQueue.get();
@@ -47,10 +48,14 @@ namespace demo {
     ModuleWrapper& operator=(const ModuleWrapper&);
     
   private:
+    void prefetchAsync(WaitingTask* iPostPrefetchTask);
+    void runModuleAfterAsyncPrefetch(std::exception_ptr);
+    virtual void implDoWork() = 0;
     Module* m_module;
     Event* m_event;
+    WaitingTaskList m_waitingTasks;
     std::shared_ptr<SerialTaskQueue> m_runQueue;
-    std::atomic_flag m_requestedPrefetch;
+    std::atomic<bool> m_workStarted;
 
   };
   

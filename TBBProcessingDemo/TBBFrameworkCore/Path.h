@@ -12,9 +12,8 @@
 #include <memory>
 #include <exception>
 #include <atomic>
-#include "PathFilteringCallback.h"
 #include "FilterOnPathWrapper.h"
-
+#include "WaitingTaskList.h"
 
 namespace demo {
   class Event;
@@ -22,9 +21,9 @@ namespace demo {
   
   class Path {
   public:
-    Path(): m_fatalJobErrorOccurredPtr(0),m_callback(0) {}
+    Path(): m_fatalJobErrorOccurredPtr(nullptr),m_callback() {}
     
-    void runAsync(PathFilteringCallback iCallback); 
+    void runAsync(WaitingTask* iCallback); 
     
     void reset();
     
@@ -35,17 +34,19 @@ namespace demo {
     void addFilter(FilterWrapper* iFilter, Event*);
     
     Path* clone(const std::vector<std::shared_ptr<FilterWrapper> >& iWrappers, Event*) const;
-    
-    void doNextIfSuccess(bool iKeep, std::exception_ptr iException, size_t iPreviousIndex);
-  private:
-    friend class FilterOnPathWrapper;
-    Path(const Path& iOther); //undefined
+
+  private:    
+    void filterFinished(std::exception_ptr const* iException,
+                        size_t iIndex);
+
+
+    Path(const Path& iOther) = delete;
 
     void runFilterAsync( size_t iIndex);
     
     std::vector<FilterOnPathWrapper> m_filters;
     std::atomic<bool>* m_fatalJobErrorOccurredPtr;
-    PathFilteringCallback m_callback;
+    WaitingTaskList m_callback;
   };
   
 }

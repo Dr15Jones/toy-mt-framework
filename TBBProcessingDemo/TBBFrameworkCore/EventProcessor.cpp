@@ -20,31 +20,26 @@ using namespace demo;
 
 EventProcessor::EventProcessor():
   m_source(),
-  m_eventLoopWaitTask(new (tbb::task::allocate_root()) tbb::empty_task{}),
   m_nextModuleID(0),
-  m_deferredExceptionPtrIsSet(false),
-  m_deferredExceptionPtr{},
   m_fatalJobErrorOccured(false)
   {
-    m_eventLoopWaitTask->increment_ref_count();
-    m_schedules.push_back(LoopContext(new Schedule(),this));
-    m_schedules[0].m_schedule->setFatalJobErrorOccurredPointer(&m_fatalJobErrorOccured);
+    m_schedules.emplace_back(std::make_unique<Schedule>());
+    m_schedules[0]->setFatalJobErrorOccurredPointer(&m_fatalJobErrorOccured);
     
   }
 
 EventProcessor::~EventProcessor()
 {
-  tbb::task::destroy(*m_eventLoopWaitTask);
 }
 
 void 
 EventProcessor::setSource(Source* iSource) {
-  m_source = std::shared_ptr<Source>(iSource);
+  m_source.reset(iSource);
 }
 void
 EventProcessor::addPath(const std::string& iName,
                         const std::vector<std::string>& iModules) {
-  m_schedules[0].m_schedule->addPath(iModules);
+  m_schedules[0]->addPath(iModules);
 }
 
 void 
@@ -52,7 +47,7 @@ EventProcessor::addProducer(Producer* iProd) {
   iProd->setID(m_nextModuleID);
   ++m_nextModuleID;
   m_producers[iProd->label()]=iProd;
-  m_schedules[0].m_schedule->event()->addProducer(iProd);
+  m_schedules[0]->event()->addProducer(iProd);
 }
 
 void
@@ -60,7 +55,7 @@ EventProcessor::addFilter(Filter* iFilter) {
   iFilter->setID(m_nextModuleID);
   ++m_nextModuleID;
   m_filters.push_back(iFilter);
-  m_schedules[0].m_schedule->addFilter(iFilter);
+  m_schedules[0]->addFilter(iFilter);
 }
 
 static
@@ -190,79 +185,44 @@ EventProcessor::finishSetup() {
   m_producers.clear();
 }
 
+void EventProcessor::handleNextEventAsync(WaitingTaskHolder iHolder,
+                                          unsigned int iEventIndex) {
+  Schedule& schedule = *(m_schedules[iEventIndex]);
+  schedule.event()->reset();
 
-void
-ScheduleFilteringCallback::operator()(std::exception_ptr iException) const {
-  EventProcessor::LoopContext* lc = static_cast<EventProcessor::LoopContext*>(m_context);
-  lc->filter(iException);
-}
-
-namespace demo {
-   class GetAndProcessOneEventTask : public tbb::task {
-      public:
-         GetAndProcessOneEventTask(EventProcessor::LoopContext& iContext):
-         m_context(iContext){}
-      
-         tbb::task* execute() {
-            Source* source = m_context.processor()->m_source.get();
-            Schedule& schedule = *(m_context.schedule());
-            schedule.event()->reset();
-
-            if(source->setEventInfo(*(schedule.event()))) {
-              schedule.process(ScheduleFilteringCallback(&m_context));
-            } else {
-               //no more work to do so signal that this schedule has finished
-               m_context.processor()->m_eventLoopWaitTask->decrement_ref_count();
-            }
-            return 0;
-         }
-      private:
-         EventProcessor::LoopContext& m_context;
-   };
-} 
-
-void
-EventProcessor::LoopContext::filter(std::exception_ptr iException) {
-  if(not iException) {
-    tbb::task::spawn( *(new (tbb::task::allocate_root()) GetAndProcessOneEventTask{*this}));
-  } else {
-     //told to stop processing so we signal that this schedule has finished
-     m_processor->m_eventLoopWaitTask->decrement_ref_count();
-     
-     m_processor->tryToSet(iException);
+  if(m_source->setEventInfo(*(schedule.event()))) {
+    auto recursiveTask = make_waiting_task( tbb::task::allocate_root(),
+                          [this, h = std::move(iHolder), iEventIndex](std::exception_ptr const* iPtr) mutable {
+        if(iPtr) {
+          h.doneWaiting(*iPtr);
+        } else {
+          handleNextEventAsync(std::move(h), iEventIndex);
+        }
+      });
+    schedule.processAsync(WaitingTaskHolder{recursiveTask});
   }
 }
 
-void EventProcessor::tryToSet(std::exception_ptr iException) {
-  bool expected = false;
-  if( m_deferredExceptionPtrIsSet.compare_exchange_strong(expected,true) ) {
-    m_deferredExceptionPtr = iException;
-    //this second set is to force *m_exceptionPtr to be seen by other threads
-    // This works since m_exceptionPtr is only used after all threads
-    // have been joined
-    m_deferredExceptionPtrIsSet = true;
-  }
-}
+
 
 void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
   m_schedules.reserve(iNumConcurrentEvents);
 
-  //Use 'enqueue' rather than 'spawn' in order to increase the probability that each event
-  // will be processed on its own thread, therby increasing locality
-  for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
-    Schedule* scheduleTemp = m_schedules[0].m_schedule->clone();
-    m_schedules.push_back(LoopContext(scheduleTemp,this));
-    m_eventLoopWaitTask->increment_ref_count();
-    tbb::task::enqueue( *(new (tbb::task::allocate_root()) GetAndProcessOneEventTask{m_schedules.back()}));
+  auto eventLoopWaitTask = make_empty_waiting_task();
+  eventLoopWaitTask->increment_ref_count();
+  {
+    WaitingTaskHolder h{ eventLoopWaitTask.get() };
+    for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
+      Schedule* scheduleTemp = m_schedules[0]->clone();
+      m_schedules.emplace_back(scheduleTemp);
+      handleNextEventAsync(h, nEvents);
+    }
+    handleNextEventAsync(h,0);
   }
-  //Do this after all others so that we are not calling 'Event->clone()' while the
-  // object is being accessed on another thread
-  m_eventLoopWaitTask->increment_ref_count();
-  m_eventLoopWaitTask->spawn_and_wait_for_all(*(new (tbb::task::allocate_root()) GetAndProcessOneEventTask{m_schedules[0]}));
 
-  if(m_deferredExceptionPtrIsSet) {
-     auto temp = m_deferredExceptionPtr;
-     m_deferredExceptionPtr = std::exception_ptr();
-    std::rethrow_exception(temp);
+  eventLoopWaitTask->wait_for_all();
+
+  if(eventLoopWaitTask->exceptionPtr()) {
+    std::rethrow_exception(*eventLoopWaitTask->exceptionPtr());
   }
 }

@@ -9,6 +9,7 @@
 #ifndef DispatchProcessingDemo_EventProcessor_h
 #define DispatchProcessingDemo_EventProcessor_h
 #include "Schedule.h"
+#include "WaitingTaskHolder.h"
 #include <vector>
 #include <map>
 #include <memory>
@@ -38,34 +39,16 @@ namespace demo {
     
     void finishSetup();
     
-    class LoopContext {
-       friend class EventProcessor;
-    public: 
-      LoopContext():m_schedule(),m_processor(0) {}
-      void filter(std::exception_ptr);
-      std::shared_ptr<Schedule> schedule() const { return m_schedule;}
-      EventProcessor* processor() const {return m_processor;}
-    private:
-      LoopContext(Schedule* iSchedule, EventProcessor* iProc):
-      m_schedule(iSchedule), m_processor(iProc) {}
-      std::shared_ptr<Schedule> m_schedule;
-      EventProcessor* m_processor;
-    };
-    friend class LoopContext;
   private:
-    
-    void tryToSet(std::exception_ptr iException);
 
-    std::shared_ptr<Source> m_source;
-    tbb::task* m_eventLoopWaitTask;
-    std::vector<LoopContext> m_schedules;
+    void handleNextEventAsync(WaitingTaskHolder iHolder,
+                              unsigned int iEventIndex);
+
+    std::unique_ptr<Source> m_source;
+    std::vector<std::unique_ptr<Schedule>> m_schedules;
     std::map<std::string,Producer*> m_producers;
     std::vector<Filter*> m_filters;
     unsigned int m_nextModuleID;
-
-    //The atomic protects concurrent access of deferredExceptionPtr_
-    std::atomic<bool> m_deferredExceptionPtrIsSet;
-    std::exception_ptr m_deferredExceptionPtr;
 
     std::atomic<bool> m_fatalJobErrorOccured;    
   };

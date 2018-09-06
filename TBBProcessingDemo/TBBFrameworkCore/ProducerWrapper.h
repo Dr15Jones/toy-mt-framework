@@ -12,38 +12,29 @@
 #include <memory>
 #include <exception>
 #include "ModuleWrapper.h"
-#include "PrefetchAndWorkWrapper.h"
-#include "WaitingTaskList.h"
 #include "Producer.h"
 
 namespace demo {
   
   class Event;
   
-  class ProducerWrapper : private ModuleWrapper,PrefetchAndWorkWrapper {
+  class ProducerWrapper : public ModuleWrapper {
   public:
     explicit ProducerWrapper(Producer*, Event*);
     ProducerWrapper(const ProducerWrapper&, Event*);
     ProducerWrapper(const ProducerWrapper&);
-    ~ProducerWrapper();
     
     ///Pass task to be called when data has been produced
     void doProduceAsync(WaitingTask* iCallTaskWhenDone);
 
-    void reset();
-
-    bool wasRun() const {return m_wasRun;}
-    
     unsigned int id() const {return m_producer->id();}
   private:
-    void doWork(std::exception_ptr) override;
+    void implDoWork() override;
     Producer* producer() const;
 
-    ProducerWrapper& operator=(const ProducerWrapper&);
+    ProducerWrapper& operator=(const ProducerWrapper&) = delete;
     
     std::shared_ptr<Producer> m_producer;
-    WaitingTaskList m_waitingList;
-    bool m_wasRun;
 
   };
 }

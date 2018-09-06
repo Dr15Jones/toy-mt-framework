@@ -46,6 +46,38 @@ namespace demo {
      
      tbb::task* execute() override { return nullptr;}
   };
+
+  namespace waitingtask {
+    struct TaskDestroyer {
+      void operator()(tbb::task* iTask) const {
+        tbb::task::destroy(*iTask);
+      }
+    };
+  }
+  ///Create an EmptyWaitingTask which will properly be destroyed
+  inline auto make_empty_waiting_task() {
+    return std::unique_ptr<EmptyWaitingTask, waitingtask::TaskDestroyer>( new (tbb::task::allocate_root()) EmptyWaitingTask{});
+  }
+
+
+  template<typename F>
+    class FunctorWaitingTask : public WaitingTask {
+  public:
+    explicit FunctorWaitingTask( F f): func_(std::move(f)) {}
+    
+    task* execute() override {
+      func_(exceptionPtr());
+      return nullptr;
+    };
+    
+  private:
+    F func_;
+  };
+  
+  template< typename ALLOC, typename F>
+    FunctorWaitingTask<F>* make_waiting_task( ALLOC&& iAlloc, F f) {
+    return new (iAlloc) FunctorWaitingTask<F>(std::move(f));
+  }
 }
 
 #endif

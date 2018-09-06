@@ -24,17 +24,18 @@ namespace demo {
     
     void reset();
     const std::string& label() const;
+
+    bool shouldKeep() const { return m_keep;}
     
-    bool doFilter();
+    void doFilterAsync(WaitingTask*);
     
-    bool wasRun() const { return m_wasRun;}
     Filter* filter() const;
     
   private:
+    void implDoWork() override;
     FilterWrapper(const FilterWrapper&);
     std::shared_ptr<Filter> m_filter;
     bool m_keep;
-    std::atomic<bool> m_wasRun;    
   };
 }
 

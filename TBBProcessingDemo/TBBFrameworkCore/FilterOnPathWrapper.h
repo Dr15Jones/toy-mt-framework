@@ -10,26 +10,26 @@
 
 #ifndef DispatchProcessingDemo_FilterOnPathWrapper_h
 #define DispatchProcessingDemo_FilterOnPathWrapper_h
-#include "PrefetchAndWorkWrapper.h"
 
 namespace demo {
   class FilterWrapper;
   class Path;
-  class FilterOnPathWrapper: public PrefetchAndWorkWrapper {
+  class WaitingTask;
+
+  class FilterOnPathWrapper  {
   public:
     FilterOnPathWrapper(FilterWrapper* iFilter,
-                        Path* iPath,
                         size_t iIndex);
     
-    void filterAsync();
+    void filterAsync(WaitingTask*);
     const std::string& label() const;
 
     FilterWrapper* filter() const;
 
+    bool checkResultsOfRunFilter();
+
   private:
-    void doWork(std::exception_ptr) override;
     FilterWrapper* m_filter;
-    Path* m_path;
     size_t m_index;
   };
 }

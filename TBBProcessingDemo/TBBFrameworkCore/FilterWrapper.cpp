@@ -26,36 +26,33 @@ FilterWrapper::filter() const
 FilterWrapper::FilterWrapper(std::shared_ptr<Filter> iFilter,Event* iEvent):
 ModuleWrapper(iFilter.get(),iEvent),
 m_filter(iFilter),
-m_keep(false),
-m_wasRun(false)
+m_keep(false)
 {
 }
 
 FilterWrapper::FilterWrapper(const FilterWrapper& iWrapper,Event* iEvent):
 ModuleWrapper(iWrapper,iEvent),
 m_filter(iWrapper.m_filter),
-m_keep(false),
-m_wasRun(false)
+m_keep(false)
 {
 }
 
+void
+FilterWrapper::doFilterAsync(WaitingTask* iTask) {
+  doWorkAsync(iTask);
+}
 
 void
 FilterWrapper::reset()
 {
-  m_wasRun=false;
   m_keep=false;
   ModuleWrapper::reset();
 }
 
-bool
-FilterWrapper::doFilter()
+void
+FilterWrapper::implDoWork()
 {
-  if(!m_wasRun) {
-    m_keep = filter()->doFilter(*event());
-    m_wasRun=true;
-  }
-  return m_keep;
+  m_keep = filter()->doFilter(*event());
 }
 
 const std::string&

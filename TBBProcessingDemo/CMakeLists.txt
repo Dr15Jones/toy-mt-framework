@@ -15,7 +15,6 @@ set(CORE_FILES
     TBBFrameworkCore/ModuleThreadStack.cpp
     TBBFrameworkCore/ModuleWrapper.cpp
     TBBFrameworkCore/Path.cpp
-    TBBFrameworkCore/PrefetchAndWorkWrapper.cpp
     TBBFrameworkCore/Producer.cpp
     TBBFrameworkCore/ProducerWrapper.cpp
     TBBFrameworkCore/Queues.cpp
