@@ -19,6 +19,7 @@ SimpleSource::SimpleSource(size_t iNEvents):
 bool 
 SimpleSource::setEventInfo(Event& iEvent) {
   //printf("event #%u\n",static_cast<unsigned int>(m_seenEvents));
-  iEvent.setIndex(m_seenEvents);
-  return m_nEvents >= ++m_seenEvents;
+  auto i = m_seenEvents++;
+  iEvent.setIndex(i);
+  return m_nEvents >= i+1;
 }
