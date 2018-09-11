@@ -15,6 +15,7 @@
 #include <thread>
 #include "tbb/task.h"
 #include "WaitingTaskList.h"
+#include "WaitingTask.h"
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)
 #define CXX_THREAD_AVAILABLE
@@ -36,7 +37,7 @@ public:
 };
 
 namespace  {
-   class TestCalledTask : public tbb::task {
+  class TestCalledTask : public demo::WaitingTask {
    public:
       TestCalledTask(std::atomic<bool>& iCalled): m_called(iCalled) {}
 
@@ -49,7 +50,7 @@ namespace  {
       std::atomic<bool>& m_called;
    };
    
-   class TestValueSetTask : public tbb::task {
+  class TestValueSetTask : public demo::WaitingTask {
    public:
       TestValueSetTask(std::atomic<bool>& iValue): m_value(iValue) {}
          tbb::task* execute() {
@@ -73,7 +74,7 @@ void WaitingTaskList_test::addThenDone()
                                             [](tbb::task* iTask){tbb::task::destroy(*iTask);} };
       waitTask->set_ref_count(2);
       //NOTE: allocate_child does NOT increment the ref_count of waitTask!
-      tbb::task* t = new (waitTask->allocate_child()) TestCalledTask{called};
+      auto t = new (waitTask->allocate_child()) TestCalledTask{called};
    
       waitList.add(t);
 
@@ -81,7 +82,7 @@ void WaitingTaskList_test::addThenDone()
       __sync_synchronize();
       CPPUNIT_ASSERT(false==called);
    
-      waitList.doneWaiting();
+      waitList.doneWaiting(std::exception_ptr{});
       waitTask->wait_for_all();
       __sync_synchronize();
       CPPUNIT_ASSERT(true==called);
@@ -95,14 +96,14 @@ void WaitingTaskList_test::addThenDone()
                                             [](tbb::task* iTask){tbb::task::destroy(*iTask);} };
       waitTask->set_ref_count(2);
    
-      tbb::task* t = new (waitTask->allocate_child()) TestCalledTask{called};
+      auto t = new (waitTask->allocate_child()) TestCalledTask{called};
    
       waitList.add(t);
 
       usleep(10);
       CPPUNIT_ASSERT(false==called);
    
-      waitList.doneWaiting();
+      waitList.doneWaiting(std::exception_ptr{});
       waitTask->wait_for_all();
       CPPUNIT_ASSERT(true==called);
    }
@@ -117,9 +118,9 @@ void WaitingTaskList_test::doneThenAdd()
                                             [](tbb::task* iTask){tbb::task::destroy(*iTask);} };
       waitTask->set_ref_count(2);
    
-      tbb::task* t = new (waitTask->allocate_child()) TestCalledTask{called};
+      auto t = new (waitTask->allocate_child()) TestCalledTask{called};
 
-      waitList.doneWaiting();
+      waitList.doneWaiting(std::exception_ptr{});
    
       waitList.add(t);
       waitTask->wait_for_all();
@@ -163,7 +164,7 @@ void WaitingTaskList_test::stressTest()
          
          std::thread doneWaitThread([&waitList,&called,pWaitTask]{
             called=true;
-            waitList.doneWaiting();
+            waitList.doneWaiting(std::exception_ptr{});
             pWaitTask->decrement_ref_count();
             });
          std::shared_ptr<std::thread> guard2(&doneWaitThread,join_thread);

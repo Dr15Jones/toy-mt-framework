@@ -70,7 +70,7 @@ if(CPPUNIT_FOUND)
       TBBUnitTests/WaitingTaskList_test.cpp
       TBBUnitTests/main.cpp)
   add_executable(TBBRunUnitTests ${UNIT_TEST_FILES})
-  target_link_libraries(TBBRunUnitTests ${TBB_LIBRARIES} ${CPPUNIT_LIBRARY})
+  target_link_libraries(TBBRunUnitTests TBBFrameworkCore pthread ${TBB_LIBRARIES} ${CPPUNIT_LIBRARY})
 endif()
 
 add_executable(TBBDemo main.cpp)
