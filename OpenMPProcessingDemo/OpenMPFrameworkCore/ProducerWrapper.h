@@ -8,38 +8,34 @@
 
 #ifndef DispatchProcessingDemo_ProducerWrapper_h
 #define DispatchProcessingDemo_ProducerWrapper_h
-
-#if defined(PARALLEL_MODULES)  
 #include <atomic>
-#endif
 #include <memory>
+#include <exception>
 #include "ModuleWrapper.h"
+#include "Producer.h"
 
 namespace demo {
   
-  class Producer;
   class Event;
   
-  class ProducerWrapper : private ModuleWrapper {
+  class ProducerWrapper : public ModuleWrapper {
   public:
-    explicit ProducerWrapper(Producer*);
-    ProducerWrapper(const ProducerWrapper*);
+    explicit ProducerWrapper(Producer*, Event*);
+    ProducerWrapper(const ProducerWrapper&, Event*);
     ProducerWrapper(const ProducerWrapper&);
-    ~ProducerWrapper();
     
-    void doProduce(Event&);
+    ///Pass task to be called when data has been produced
+    void doProduceAsync(WaitingTaskHolder iCallTaskWhenDone);
 
-    void reset();
-    
+    unsigned int id() const {return m_producer->id();}
   private:
+    void implDoWork() override;
+    Producer* producer() const;
+
     ProducerWrapper& operator=(const ProducerWrapper&) = delete;
     
     std::shared_ptr<Producer> m_producer;
-#if defined(PARALLEL_MODULES)  
-    std::atomic<bool> m_wasRun;
-#else
-    bool m_wasRun;
-#endif
+
   };
 }
 

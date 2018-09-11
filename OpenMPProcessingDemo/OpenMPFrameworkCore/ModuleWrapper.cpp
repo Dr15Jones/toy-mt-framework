@@ -8,93 +8,57 @@
 
 #include <iostream>
 #include <sstream>
-
+#include <cassert>
 
 #include "ModuleWrapper.h"
+#include "WaitingTaskHolder.h"
 #include "Module.h"
+#include "Queues.h"
 #include "Event.h"
-#include "Locks.h"
+#include "SerialTaskQueue.h"
 
 using namespace demo;
 
-static
-#if defined(PARALLEL_MODULES)
-std::shared_ptr<OMPLock>
-#else
-std::shared_ptr<OMLock>
-#endif
-chooseLock(unsigned int iType)
+ModuleWrapper::ModuleWrapper(Module* iModule, Event* iEvent):
+m_module(iModule),
+m_event(iEvent),
+m_runQueue( m_module->threadType() == kThreadSafeBetweenInstances? static_cast<SerialTaskQueue*>(nullptr) : new SerialTaskQueue{}),
+m_workStarted{false}
 {
-#if defined(PARALLEL_MODULES)
-  return iType != kThreadUnsafe? std::shared_ptr<OMPLock>(new OMPLock{}) : s_thread_unsafe_lock;
-#else
-  std::shared_ptr<OMPLock> returnValue;
-  switch(iType) {
-    case kThreadUnsafe:
-    {
-      returnValue = s_thread_unsafe_lock;
-      break;
-    }
-    case kThreadSafeBetweenModules:
-    {
-      returnValue = std::shared_ptr<OMLock>(new OMPLock{});
-      break;
-    }
-    case kThreadSafeBetweenInstances:
-    {
-      //no need for a lock
-      break;
-    }
-    default:
-    assert(false);
+}
+
+ModuleWrapper::ModuleWrapper(const ModuleWrapper& iOther,
+                             Event* iEvent):
+m_module(iOther.m_module),
+m_event(iEvent),
+m_workStarted{false}
+{
+  if(m_module->threadType() != kThreadSafeBetweenInstances) {
+    //the same instance can not be called reentrantly so each Schedule must
+    // have its own queue for each instance
+    m_runQueue=iOther.m_runQueue;
   }
-  return returnValue;
-#endif  
 }
-
-ModuleWrapper::ModuleWrapper(Module* iModule):
-  m_module(iModule),
-#if defined(PARALLEL_MODULES)
-  m_prefetchLock{},
-  m_runLock(chooseLock(m_module->threadType())),
-  m_donePrefetch(false)
-#else
-  m_runLock(chooseLock(m_module->threadType()))
-#endif
-{
-}
-
-ModuleWrapper::ModuleWrapper(const ModuleWrapper* iOther):
-  m_module(iOther->m_module),
-#if defined(PARALLEL_MODULES)
-  m_prefetchLock{},
-  m_donePrefetch(false)
-#else
-  m_runLock(iOther->m_runLock)
-#endif
-{
-#if defined(PARALLEL_MODULES)
-  if(m_module->threadType() == kThreadSafeBetweenInstances) {
-    //the same instance can be called reentrantly so each Schedule can have
-    // its own lock for each instance rather than having to share one lock
-    m_runLock = std::shared_ptr<OMPLock>(new OMPLock{});
-  } else {
-    m_runLock = iOther->m_runLock;
-  }
-#endif
-}
-
 
 ModuleWrapper::ModuleWrapper(const ModuleWrapper& iOther):
-  m_module(iOther.m_module),
-#if defined(PARALLEL_MODULES)
-  m_prefetchLock{},
-  m_runLock{iOther.m_runLock},
-  m_donePrefetch(static_cast<bool>(iOther.m_donePrefetch))
-#else
-  m_runLock{iOther.m_runLock}
-#endif
+m_module(iOther.m_module),
+m_event(iOther.m_event),
+m_runQueue(iOther.m_runQueue),
+m_workStarted{false}
 {
+}
+
+ModuleWrapper&
+ModuleWrapper::operator=(const ModuleWrapper& iOther)
+{
+  if(&iOther!=this) {
+    m_module =iOther.m_module;
+    m_event = iOther.m_event;
+    m_runQueue=iOther.m_runQueue;
+    //leave it the way it was
+    //m_workStarted = iOther.m_workStarted
+  }
+  return *this;
 }
 
 ModuleWrapper::~ModuleWrapper()
@@ -102,19 +66,46 @@ ModuleWrapper::~ModuleWrapper()
 }
 
 void
-ModuleWrapper::prefetch(Event& iEvent)
-{
-#if defined(PARALLEL_MODULES)
-  if(!m_donePrefetch) {
-    OMPLockSentry sentry(&m_prefetchLock);
-    if(!m_donePrefetch) {
-      m_module->prefetch(iEvent);
-      __sync_synchronize();
-      m_donePrefetch=true;
-    }
+ModuleWrapper::doWorkAsync(WaitingTaskHolder iTask) {
+  m_waitingTasks.add(std::move(iTask));
+
+  bool expected = false;
+  if(m_workStarted.compare_exchange_strong(expected,true) ) {
+    module()->prefetchAsync(*m_event, 
+                            WaitingTaskHolder(make_waiting_task([this](std::exception_ptr const* iPtr)
+      {
+        std::exception_ptr ptr;
+        if(iPtr) {
+          ptr = *iPtr;
+        }
+        if(runQueue()) {
+          runQueue()->push([this,ptr]() {
+              runModuleAfterAsyncPrefetch(ptr);
+            });
+        } else {
+          runModuleAfterAsyncPrefetch(ptr);
+        }
+      }) )
+    );
   }
-#else
-  m_module->prefetch(iEvent);
-#endif
 }
 
+void 
+ModuleWrapper::prefetchAsync(WaitingTaskHolder iPrefetchDoneTask)
+{
+  if(module()->hasPrefetchItems()) { 
+     module()->prefetchAsync(*m_event, std::move(iPrefetchDoneTask)); 
+  }
+}
+
+void
+ModuleWrapper::runModuleAfterAsyncPrefetch(std::exception_ptr iPtr) {
+  if(not iPtr) {
+    try {
+      implDoWork();
+    } catch(...) {
+      iPtr = std::current_exception();
+    }
+  }
+  m_waitingTasks.doneWaiting(iPtr);
+};

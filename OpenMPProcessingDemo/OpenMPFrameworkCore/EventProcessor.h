@@ -8,12 +8,12 @@
 
 #ifndef DispatchProcessingDemo_EventProcessor_h
 #define DispatchProcessingDemo_EventProcessor_h
-#include <vector>
-#include <atomic>
-#include <memory>
 #include "Schedule.h"
-#include "OMPLock.h"
-
+#include "WaitingTaskHolder.h"
+#include <vector>
+#include <map>
+#include <memory>
+#include <exception>
 
 namespace demo {
   class Source;
@@ -34,16 +34,19 @@ namespace demo {
     void addFilter(Filter* iFilter);
     void processAll(unsigned int iNumConcurrentEvents);
     
-  private:
-    void get_and_process_events(Schedule&);
+    void finishSetup();
     
-    std::shared_ptr<Source> m_source;
-#if defined(PARALLEL_MODULES)
-    OMPLock m_sourceLock;
-#else
-    OMPLock m_sourceLock;
-#endif
-    std::vector<std::shared_ptr<Schedule>> m_schedules;
+  private:
+
+    void handleNextEventAsync(WaitingTaskHolder iHolder,
+                              unsigned int iEventIndex);
+
+    std::unique_ptr<Source> m_source;
+    std::vector<std::unique_ptr<Schedule>> m_schedules;
+    std::map<std::string,Producer*> m_producers;
+    std::vector<Filter*> m_filters;
+    unsigned int m_nextModuleID;
+
     std::atomic<bool> m_fatalJobErrorOccured;    
   };
 

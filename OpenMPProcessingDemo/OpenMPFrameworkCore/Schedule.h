@@ -20,6 +20,7 @@ namespace demo {
   class Event;
   class Filter;
   class FilterWrapper;
+  class WaitingTaskHolder;
   
   class Schedule {
   public:
@@ -27,8 +28,7 @@ namespace demo {
     Schedule();
     Schedule(const Schedule&);
     
-    //returns true if should keep processing
-    bool process();
+    void processAsync(WaitingTaskHolder);
 
     void reset();
     
@@ -45,7 +45,6 @@ namespace demo {
     Schedule* clone();
     
   private:
-    void processPresentPath(Path*);
 
     //used for cloning
     Schedule(Event*);

@@ -9,71 +9,66 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
-
+#include <atomic>
+#include <exception>
 
 
 #include "ProducerWrapper.h"
 #include "Producer.h"
 #include "Event.h"
+#include "Queues.h"
+
+//std::atomic<unsigned long> s_numberOfTasks{0};
 
 using namespace demo;
 
-ProducerWrapper::ProducerWrapper(Producer* iProd):
-ModuleWrapper(iProd),
-m_producer(iProd),
-m_wasRun(false)
+static const std::string kPrefix("gov.fnal.");
+
+static unsigned long nextID() {
+  static unsigned long s_id =0;
+  ++s_id;
+  return s_id;
+}
+
+static std::string unique_name(const std::string& iString) {
+  std::ostringstream os;
+  os<<iString<<nextID();
+  return os.str();
+}
+
+
+Producer* 
+ProducerWrapper::producer() const
+{
+  return static_cast<Producer*>(module());
+}
+
+ProducerWrapper::ProducerWrapper(Producer* iProd, Event* iEvent):
+ModuleWrapper(iProd,iEvent),
+m_producer(iProd)
 {
 }
 
-ProducerWrapper::ProducerWrapper(const ProducerWrapper* iOther):
-ModuleWrapper(iOther),
-m_producer(iOther->m_producer),
-m_wasRun(false)
+ProducerWrapper::ProducerWrapper(const ProducerWrapper& iOther,
+                                 Event* iEvent):
+ModuleWrapper(iOther,iEvent),
+m_producer(iOther.m_producer)
 {
 }
 
 ProducerWrapper::ProducerWrapper(const ProducerWrapper& iOther):
 ModuleWrapper(iOther),
-m_producer(iOther.m_producer),
-m_wasRun(false)
-{
-}
-
-
-ProducerWrapper::~ProducerWrapper()
+m_producer(iOther.m_producer)
 {
 }
 
 void
-ProducerWrapper::reset()
-{
-  m_wasRun=false;
-#if defined(PARALLEL_MODULES)  
-  ModuleWrapper::reset();
-#endif
+ProducerWrapper::implDoWork() {
+  producer()->doProduce(*event());
 }
 
 void
-ProducerWrapper::doProduce(Event& iEvent)
+ProducerWrapper::doProduceAsync(WaitingTaskHolder iCallTaskWhenDone)
 {
-  if(m_wasRun) {
-    return;
-  }
-  prefetch(iEvent);
-#if defined(PARALLEL_MODULES)
-  if(!m_wasRun) {
-    OMPLockSentry sentry(runLock());
-    if(!m_wasRun) {
-      m_producer->doProduce(iEvent);
-      //NOTE: needs a memory barrier to guarantee that
-      // m_wasRun is never set until after doFilter is run
-      __sync_synchronize();
-      this->m_wasRun = true;
-    }
-  }
-#else
-  OMPLockSentry sentry(runLock());
-  m_producer->doProduce(iEvent);
-  this->m_wasRun = true;  
-#endif
+  doWorkAsync(std::move(iCallTaskWhenDone));
 }

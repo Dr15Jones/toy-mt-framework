@@ -9,6 +9,7 @@
 #ifndef DispatchProcessingDemo_SimpleSource_h
 #define DispatchProcessingDemo_SimpleSource_h
 #include "Source.h"
+#include <atomic>
 
 namespace demo {
   class Event;
@@ -19,8 +20,8 @@ namespace demo {
     
     virtual bool setEventInfo(Event& iEvent);
   private:
-    size_t m_nEvents;
-    size_t m_seenEvents;
+    const size_t m_nEvents;
+    std::atomic<size_t> m_seenEvents;
   };
 }
 

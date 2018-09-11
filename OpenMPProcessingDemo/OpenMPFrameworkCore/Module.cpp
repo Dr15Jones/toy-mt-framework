@@ -8,7 +8,9 @@
  */
 
 #include <iostream>
-
+#include <algorithm>
+#include <cassert>
+#include "WaitingTaskHolder.h"
 #include "Module.h"
 #include "Getter.h"
 #include "Event.h"
@@ -20,19 +22,12 @@ Module::~Module()
 
 
 void
-Module::prefetch(const Event& iEvent)
+Module::prefetchAsync(const Event& iEvent, WaitingTaskHolder iTask)
 {
   for (std::list<Getter>::iterator it=m_getters.begin(),itEnd=m_getters.end();
        it!=itEnd; ++it) {
-    Getter* temp = &(*it);
-#if defined(PARALLEL_MODULES)  
-#pragma omp task untied default(shared), firstprivate(temp)
-#endif
-    iEvent.prefetch(temp);
+    iEvent.getAsync(&(*it),iTask);
   }
-#if defined(PARALLEL_MODULES)
-  #pragma omp taskwait
-#endif
 }
 
 const Getter* 
@@ -42,3 +37,23 @@ Module::registerGet(const std::string& iLabel, const std::string& iProduct)
    m_getters.push_back(g);
    return &(m_getters.back());
 }
+
+void 
+Module::registerMightGet(const std::string& iLabel, const std::string& iProduct)
+{
+  Getter g(iLabel,iProduct);
+  m_mightGetters.push_back(g);
+}
+
+void 
+Module::setDependentModuleToCheck(std::vector<unsigned int>& iModuleIDs)
+{
+   m_dependentModulesToCheck.swap(iModuleIDs);
+}
+
+bool 
+Module::isADependentModule(unsigned int iModuleID) const
+{
+   return std::binary_search(m_dependentModulesToCheck.begin(),m_dependentModulesToCheck.end(),iModuleID);
+}
+

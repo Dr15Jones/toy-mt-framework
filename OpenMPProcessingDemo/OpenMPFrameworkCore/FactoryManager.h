@@ -10,9 +10,8 @@
 #define DispatchProcessingDemo_FactoryManager_h
 #include <map>
 #include <string>
-#include <memory>
 #include <boost/property_tree/ptree.hpp>
-
+#include <memory>
 
 #include "Factory.h"
 

@@ -9,20 +9,22 @@
 #ifndef DispatchProcessingDemo_Path_h
 #define DispatchProcessingDemo_Path_h
 #include <vector>
-#include <atomic>
 #include <memory>
-
+#include <exception>
+#include <atomic>
+#include "FilterOnPathWrapper.h"
+#include "WaitingTaskList.h"
+#include "WaitingTaskHolder.h"
 
 namespace demo {
   class Event;
   class Filter;
-  class FilterWrapper;
   
   class Path {
   public:
-    Path(): m_fatalJobErrorOccurredPtr(0) {}
+    Path(): m_fatalJobErrorOccurredPtr(nullptr),m_callback() {}
     
-    void run(Event&); 
+    void runAsync(WaitingTaskHolder iCallback); 
     
     void reset();
     
@@ -30,15 +32,22 @@ namespace demo {
       m_fatalJobErrorOccurredPtr = iPtr;
     }
     
-    void addFilter(FilterWrapper* iFilter);
+    void addFilter(FilterWrapper* iFilter, Event*);
     
-    Path* clone(const std::vector<std::shared_ptr<FilterWrapper> >& iWrappers) const;
-    
-  private:
+    Path* clone(const std::vector<std::shared_ptr<FilterWrapper> >& iWrappers, Event*) const;
+
+  private:    
+    void filterFinished(std::exception_ptr const* iException,
+                        size_t iIndex);
+
+
     Path(const Path& iOther) = delete;
 
-    std::vector<FilterWrapper*> m_filters;
+    void runFilterAsync( size_t iIndex);
+    
+    std::vector<FilterOnPathWrapper> m_filters;
     std::atomic<bool>* m_fatalJobErrorOccurredPtr;
+    WaitingTaskList m_callback;
   };
   
 }

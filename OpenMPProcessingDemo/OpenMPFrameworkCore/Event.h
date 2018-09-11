@@ -11,19 +11,20 @@
 
 #include <map>
 #include <string>
+#include "WaitingTask.h"
 #include "Producer.h"
 #include "DataCache.h"
 
 namespace demo {
   
   class Producer;
-  class Getter;
-  
+  class Getter;  
   class Event {
   public:
     Event();
     Event(const Event&);
     unsigned long index() const {return m_index;}
+    unsigned int transitionID() const {return m_transitionID;}
     
     //Used for testing, sets correlated speed of modules
     // value goes from 0. to 1.
@@ -34,7 +35,12 @@ namespace demo {
             const std::string& iProduct) const;
     
     int get(const Getter*) const;
-    void prefetch(const Getter*) const;
+    
+    //asynchronously get data. The task will be decremented once the data has been gotten.
+    // If the ref_count of the task reaches zero, it will be spawned.
+    void getAsync(Getter* iGetter, WaitingTaskHolder iTask) const;
+    
+    //void mustWaitFor(unsigned int iModuleID, WaitingTask* iTask) const;
     
     void put(const Producer*, const std::string&, int);
     void setIndex(unsigned long iIndex) {
@@ -50,12 +56,24 @@ namespace demo {
     
     Event* clone();
     
+    struct LabelAndProduct {
+      const char*  m_label;
+      const char*  m_product;
+      LabelAndProduct(const char* iLabel, const char* iProduct ):
+      m_label(iLabel),m_product(iProduct) {}
+      
+      bool operator<(const LabelAndProduct&) const;
+    };
+
   private:
+    void getAsyncImpl(Getter* iGetter, WaitingTaskHolder iTask) const;
     
-    std::map<std::pair<std::string,std::string>,
-    DataCache > m_lookupMap;
+    
+    std::map<LabelAndProduct,DataCache> m_lookupMap;
+    std::vector<ProducerWrapper*> m_producers;
     unsigned long m_index;
     double m_relativeSpeed;
+    unsigned int m_transitionID;
   };
   
   namespace edm {
@@ -73,6 +91,10 @@ namespace demo {
               const std::string& iProduct) const;
       
       int get(const Getter*) const;
+      
+      //asynchronously get data. The task will be decremented once the data has been gotten.
+      // If the ref_count of the task reaches zero, it will be spawned.
+      void getAsync(Getter* iGetter, WaitingTaskHolder iTask) const;
       
       void put(const Producer* iProd, const std::string& iLabel, int iValue) {
         m_event->put(iProd,iLabel,iValue);

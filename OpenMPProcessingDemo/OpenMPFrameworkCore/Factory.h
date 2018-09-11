@@ -27,7 +27,7 @@ namespace demo {
     Factory() {}
     
     virtual std::unique_ptr<T> create(const boost::property_tree::ptree& iPTree) const {
-      return std::make_unique<U>(iPTree);
+      return std::unique_ptr<T>(new U(iPTree) );
     }
   };
 }

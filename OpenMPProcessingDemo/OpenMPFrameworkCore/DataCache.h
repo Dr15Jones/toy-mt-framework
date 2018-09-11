@@ -8,10 +8,8 @@
 
 #ifndef DispatchProcessingDemo_DataCache_h
 #define DispatchProcessingDemo_DataCache_h
-#if defined(PARALLEL_MODULES)  
-#include <atomic>
-#endif
 
+#include <atomic>
 #include "ProducerWrapper.h"
 
 namespace demo {
@@ -19,31 +17,38 @@ namespace demo {
   class DataCache
   {
   public:
-    DataCache(Producer* iProd):
-    m_producer(iProd),
+    DataCache(Producer* iProd,Event* iEvent):
+    m_producer(iProd, iEvent),
     m_value(0),
     m_wasCached(false) {}
-      DataCache():m_producer(static_cast<Producer*>(nullptr)),m_wasCached(false){}
+    DataCache():m_producer(0,0),m_wasCached(false){}
     
-    DataCache(const DataCache& iOther):
-    m_producer(iOther.m_producer),
+    DataCache(const DataCache& iOther, Event* iEvent):
+    m_producer(iOther.m_producer,iEvent),
     m_value(iOther.m_value),
     m_wasCached(false) {}
-    
+
+    DataCache(const DataCache& iOther):
+      m_producer(iOther.m_producer),
+      m_value(iOther.m_value),
+      m_wasCached(false) {}
+
     bool wasCached() const {
-      return m_wasCached;
+      //__sync_synchronize();
+      //Need to be sure the thread has the most up to date value
+      //NOTE: under c++11 memory model that should be guaranteed
+      return m_wasCached.load();
     }
     void reset() {
       m_wasCached=false;
     }
     void setValue(int iValue) {
       m_value=iValue;
-#if defined(PARALLEL_MODULES)  
       __sync_synchronize();
       //Need to guarantee that m_wasCached is set only after m_value is set
       // NOTE: under c++11 memory model that should be guaranteed
-#endif
       m_wasCached = true;
+      //__sync_synchronize();
       //must make sure this gets flushed
     }
     
@@ -56,11 +61,9 @@ namespace demo {
   private:
     mutable ProducerWrapper m_producer;
     int m_value;
-#if defined(PARALLEL_MODULES)  
     std::atomic<bool> m_wasCached;
-#else
-    bool m_wasCached;
-#endif    
+    //volatile bool m_wasCached;
+    
   };
 }
 

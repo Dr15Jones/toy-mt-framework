@@ -1,23 +1,16 @@
 //
 //  ModuleWrapper.h
-//  OpenMPProcessingDemo
+//  DispatchProcessingDemo
 //
 //  Created by Chris Jones on 10/8/11.
 //  Copyright 2011 FNAL. All rights reserved.
 //
 
-#ifndef OpenMPProcessingDemo_ModuleWrapper_h
-#define OpenMPProcessingDemo_ModuleWrapper_h
-
-#if defined(PARALLEL_MODULES)
+#ifndef DispatchProcessingDemo_ModuleWrapper_h
+#define DispatchProcessingDemo_ModuleWrapper_h
 #include <atomic>
-#endif
-#include <memory>
-#if defined(PARALLEL_MODULES)
-#include "OMPLock.h"
-#else
-#include "OMPLock.h"
-#endif
+#include "SerialTaskQueue.h"
+#include "WaitingTaskList.h"
 
 namespace demo {
   class Module;
@@ -25,38 +18,45 @@ namespace demo {
 
   class ModuleWrapper {
   public:
-    ModuleWrapper(Module* iModule);
+    ModuleWrapper(Module* iModule,
+                  Event* iEvent);
     virtual ~ModuleWrapper();
     
-  protected:
-    ModuleWrapper(const ModuleWrapper*);
-    ModuleWrapper(const ModuleWrapper&);
-    
-#if defined(PARALLEL_MODULES)
-    OMPLock* runLock() {
-#else
-    OMPLock* runLock() {
-#endif
-      return m_runLock.get();
+    Module* module() const {
+      return m_module;
+    }
+
+    Event* event() const {
+      return m_event;
     }
     
-#if defined(PARALLEL_MODULES)
-    void reset() { m_donePrefetch=false; }
-#endif
+    void reset() {
+      m_workStarted = false;
+      m_waitingTasks.reset();
+    }
+
+
+    void doWorkAsync(WaitingTaskHolder);
+
+    SerialTaskQueue* runQueue() const {
+      return m_runQueue.get();
+    }
+
+  protected:
+    ModuleWrapper(const ModuleWrapper&, Event*);
+    ModuleWrapper(const ModuleWrapper&);
+    ModuleWrapper& operator=(const ModuleWrapper&);
     
-    void prefetch(Event&);
-    
-   private:
-    ModuleWrapper& operator=(const ModuleWrapper&) = delete;
-    
+  private:
+    void prefetchAsync(WaitingTaskHolder iPostPrefetchTask);
+    void runModuleAfterAsyncPrefetch(std::exception_ptr);
+    virtual void implDoWork() = 0;
     Module* m_module;
-#if defined(PARALLEL_MODULES)
-    OMPLock m_prefetchLock;
-    std::shared_ptr<OMPLock> m_runLock;
-    std::atomic<bool> m_donePrefetch;
-#else
-    std::shared_ptr<OMPLock> m_runLock;
-#endif
+    Event* m_event;
+    WaitingTaskList m_waitingTasks;
+    std::shared_ptr<SerialTaskQueue> m_runQueue;
+    std::atomic<bool> m_workStarted;
+
   };
   
 };

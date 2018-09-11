@@ -7,21 +7,26 @@
 //
 
 #include <iostream>
-#include <memory>
+#include <cassert>
 #include "EventProcessor.h"
 #include "Schedule.h"
 #include "Event.h"
 #include "Path.h"
 #include "Source.h"
+#include "Producer.h"
+#include "Filter.h"
+#include "WaitingTask.h"
 
 using namespace demo;
 
 EventProcessor::EventProcessor():
   m_source(),
+  m_nextModuleID(0),
   m_fatalJobErrorOccured(false)
   {
-    m_schedules.push_back( std::shared_ptr<Schedule>(new Schedule()));
+    m_schedules.emplace_back(std::make_unique<Schedule>());
     m_schedules[0]->setFatalJobErrorOccurredPointer(&m_fatalJobErrorOccured);
+    
   }
 
 EventProcessor::~EventProcessor()
@@ -30,68 +35,194 @@ EventProcessor::~EventProcessor()
 
 void 
 EventProcessor::setSource(Source* iSource) {
-  m_source = std::shared_ptr<Source>(iSource);
+  m_source.reset(iSource);
 }
-
 void
 EventProcessor::addPath(const std::string& iName,
                         const std::vector<std::string>& iModules) {
   m_schedules[0]->addPath(iModules);
 }
+
 void 
 EventProcessor::addProducer(Producer* iProd) {
+  iProd->setID(m_nextModuleID);
+  ++m_nextModuleID;
+  m_producers[iProd->label()]=iProd;
   m_schedules[0]->event()->addProducer(iProd);
 }
 
 void
 EventProcessor::addFilter(Filter* iFilter) {
+  iFilter->setID(m_nextModuleID);
+  ++m_nextModuleID;
+  m_filters.push_back(iFilter);
   m_schedules[0]->addFilter(iFilter);
 }
 
-void 
-EventProcessor::get_and_process_events(Schedule& iSchedule) 
-{
-  bool shouldContinue = true;
-  do {
-    Source* source = m_source.get();
-    iSchedule.event()->reset();
-
-    {
-      
-#if defined(PARALLEL_MODULES)
-      OMPLockSentry sentry(&m_sourceLock);
-#else
-      OMPLockSentry sentry(&m_sourceLock);
-#endif
-      shouldContinue = source->setEventInfo(*(iSchedule.event()));
-    }
-    if(shouldContinue) {
-      shouldContinue=iSchedule.process();
-    }
-  } while(shouldContinue && not m_fatalJobErrorOccured);
+static
+bool alternateDependencyPaths(unsigned int iParentID,
+                              unsigned int iChildID,
+                              std::map<unsigned int, std::vector<unsigned int>> const& iDeps) {
+   auto itFound = iDeps.find(iChildID);
+   if(itFound!=iDeps.end()) {
+     for(auto& parent: itFound->second ) {
+       if(parent != iParentID) {
+         if(alternateDependencyPaths(iParentID,parent,iDeps)) {
+           return true;
+         }
+       }
+     }
+   } else {
+     return true;
+   }
+   return false;
 }
+
+static
+void recursivelyCheckGetItems(unsigned int iStartID, 
+                                   Module* iModule, 
+                                   std::map<std::string,Producer*> const& iProds,
+                                   std::set<unsigned int> const& iAlreadyPrefetched,
+                                   std::map<unsigned int,std::vector<unsigned int>> const& iDeps,
+                                   std::set<unsigned int>& oToCheck){
+  //Items with no dependencies in the demo represent reading from storage. Storage is always OK
+  if(iModule->mightGet().empty() and iModule->prefetchItems().empty()) { return; }
+  
+  if(oToCheck.find(iModule->id())!=oToCheck.end()) {
+     //alread have it so do not have to probe further
+     return;
+  }
+  //search back up the inheritance hierarchy. If the only way to reach iModule is to go through iStartID
+  // then we can keep this as 'mightGet'.
+  if(iAlreadyPrefetched.find(iModule->id())==iAlreadyPrefetched.end() and alternateDependencyPaths(iStartID,iModule->id(),iDeps)) {
+     std::cout <<"Avoid deadlock: "<<iStartID<<" will look for "<<iModule->label()<<std::endl;
+
+     oToCheck.insert(iModule->id());
+  }
+  for(auto const& getter: iModule->mightGet()) {
+     auto it = iProds.find(getter.label());
+     recursivelyCheckGetItems(iStartID,it->second,iProds,iAlreadyPrefetched,iDeps,oToCheck);        
+  }
+  for(auto const& getter: iModule->prefetchItems()) {
+    auto it = iProds.find(getter.label());
+    recursivelyCheckGetItems(iStartID,it->second,iProds,iAlreadyPrefetched,iDeps,oToCheck);
+  }
+  return;
+}
+
+static
+void recursivelyCheckPrefetchItems(Module* iModule, 
+                                   std::map<std::string,Producer*> const& iProds,
+                                   std::set<unsigned int>& iDeps){
+  if(iDeps.find(iModule->id())!=iDeps.end()) {
+     return;
+  }
+  if(iModule->hasPrefetchItems()) {
+     for(auto const& getter: iModule->prefetchItems()) {
+        auto it = iProds.find(getter.label());
+        iDeps.insert(it->second->id());
+        recursivelyCheckPrefetchItems(it->second,iProds,iDeps);
+     }
+  }
+  return;
+}
+
+static
+void correctPossibleDeadlocks(Module* iModule, 
+                              std::map<std::string,Producer*> const& iProds,
+                              std::map<unsigned int,std::vector<unsigned int>> const& iDeps) {
+  std::set<unsigned int> modulesAlreadyPrefetching;
+  recursivelyCheckPrefetchItems(iModule,iProds,modulesAlreadyPrefetching);
+  
+  std::set<unsigned int> modulesToCheck;
+  if(iModule->hasMightGetItems()) {
+    for(auto const& getter: iModule->mightGet()) {
+      auto it = iProds.find(getter.label());
+      assert(it != iProds.end());
+      recursivelyCheckGetItems(iModule->id(), it->second,iProds,modulesAlreadyPrefetching,iDeps,modulesToCheck);
+    }
+  }
+  std::vector<unsigned int> toCheck{modulesToCheck.begin(),modulesToCheck.end()};
+  iModule->setDependentModuleToCheck(toCheck);
+}
+
+static
+void addDependencies(Module* iModule, std::map<std::string, Producer*> const& iProds, std::map<unsigned int,std::vector<unsigned int>>& iDeps) {
+  for(auto const& getter: iModule->prefetchItems()) {
+    auto it = iProds.find(getter.label());
+    iDeps[it->second->id()].push_back(iModule->id());
+  }
+  for(auto const& getter: iModule->mightGet()) {
+    auto it = iProds.find(getter.label());
+    iDeps[it->second->id()].push_back(iModule->id());
+  }
+}
+
+
+
+void 
+EventProcessor::finishSetup() {
+  //Look for cases where a 'might get' could lead to a deadlock. In those
+  // cases convert the 'might get' to a 'prefetch'.
+  
+  std::map<unsigned int, std::vector<unsigned int>> moduleDependencies;
+  for(auto f: m_filters) {
+    addDependencies(f,m_producers,moduleDependencies);
+  }
+
+  for(auto labelProd: m_producers) {
+    addDependencies(labelProd.second,m_producers,moduleDependencies);
+  }
+  
+  
+  for(auto f: m_filters) {
+    correctPossibleDeadlocks(f,m_producers,moduleDependencies);
+  }
+  m_filters.clear();
+
+  for(auto const& labelProd: m_producers) {
+    correctPossibleDeadlocks(labelProd.second,m_producers,moduleDependencies);
+  }
+  m_producers.clear();
+}
+
+void EventProcessor::handleNextEventAsync(WaitingTaskHolder iHolder,
+                                          unsigned int iEventIndex) {
+  Schedule& schedule = *(m_schedules[iEventIndex]);
+  schedule.event()->reset();
+
+  if(m_source->setEventInfo(*(schedule.event()))) {
+    auto recursiveTask = make_waiting_task([this, h = std::move(iHolder), iEventIndex](std::exception_ptr const* iPtr) mutable {
+        if(iPtr) {
+          h.doneWaiting(*iPtr);
+        } else {
+          handleNextEventAsync(std::move(h), iEventIndex);
+        }
+      });
+    schedule.processAsync(WaitingTaskHolder(std::move(recursiveTask)));
+  }
+}
+
+
 
 void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
   m_schedules.reserve(iNumConcurrentEvents);
+
+  auto eventLoopWaitTask = std::shared_ptr<WaitingTask>(make_waiting_task([](auto) {}));
+
+  WaitingTaskHolder h( std::move(eventLoopWaitTask) );
 #pragma omp parallel default(shared)
   {
-    #pragma omp single
-    {
-      for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
-        std::shared_ptr<Schedule> scheduleTemp{m_schedules[0]->clone()};
-        m_schedules.push_back(scheduleTemp);
-        auto temp = scheduleTemp.get();
-	#pragma omp task untied firstprivate(temp)
-        {
-          get_and_process_events(*temp);
-        }
-      }
-      //Do this after all others so that we are not calling 'Event->clone()' while the
-      // object is being accessed on another thread
-      #pragma omp task untied 
-      {
-	get_and_process_events(*(m_schedules[0]));
-      }
+#pragma omp single
+    for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
+      Schedule* scheduleTemp = m_schedules[0]->clone();
+      m_schedules.emplace_back(scheduleTemp);
+      handleNextEventAsync(h, nEvents);
     }
+    handleNextEventAsync(h,0);
+  }
+
+  if(auto e = eventLoopWaitTask->exceptionPtr()) {
+    std::rethrow_exception(*e);
   }
 }

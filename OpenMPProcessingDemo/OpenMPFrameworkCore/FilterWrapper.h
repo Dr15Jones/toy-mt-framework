@@ -1,6 +1,6 @@
 //
 //  FilterWrapper.h
-//  OpenMPProcessingDemo
+//  DispatchProcessingDemo
 //
 //  Holds the per event information for a Filter
 //
@@ -8,11 +8,9 @@
 //  Copyright 2011 FNAL. All rights reserved.
 //
 
-#ifndef OpenMPProcessingDemo_FilterWrapper_h
-#define OpenMPProcessingDemo_FilterWrapper_h
-#if defined(PARALLEL_MODULES)  
+#ifndef DispatchProcessingDemo_FilterWrapper_h
+#define DispatchProcessingDemo_FilterWrapper_h
 #include <atomic>
-#endif
 #include <memory>
 #include "ModuleWrapper.h"
 #include "Filter.h"
@@ -21,26 +19,23 @@ namespace demo {
   class Event;
   class FilterWrapper: public ModuleWrapper {
   public:
-    FilterWrapper(std::shared_ptr<Filter> iFilter);
-    FilterWrapper(const FilterWrapper* iWrapper);
+    FilterWrapper(std::shared_ptr<Filter> iFilter,Event*);
+    FilterWrapper(const FilterWrapper& iWrapper, Event* iEvent);
     
     void reset();
     const std::string& label() const;
+
+    bool shouldKeep() const { return m_keep;}
     
-    bool doFilter(Event&);
+    void doFilterAsync(WaitingTaskHolder);
     
-    bool wasRun() const { return m_wasRun;}
-    std::shared_ptr<Filter> filter() const;
+    Filter* filter() const;
     
   private:
-    FilterWrapper(const FilterWrapper&) = delete;
+    void implDoWork() override;
+    FilterWrapper(const FilterWrapper&);
     std::shared_ptr<Filter> m_filter;
     bool m_keep;
-#if defined(PARALLEL_MODULES)  
-    std::atomic<bool> m_wasRun;
-#else
-    bool m_wasRun;
-#endif    
   };
 }
 

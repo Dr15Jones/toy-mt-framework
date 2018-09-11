@@ -17,62 +17,42 @@
 using namespace demo;
 
 inline
-std::shared_ptr<Filter>
+Filter*
 FilterWrapper::filter() const
 {
-  return m_filter;
+  return m_filter.get();
 }
 
-FilterWrapper::FilterWrapper(std::shared_ptr<Filter> iFilter):
-ModuleWrapper(iFilter.get()),
-m_filter(std::move(iFilter)),
-m_keep(false),
-m_wasRun(false)
+FilterWrapper::FilterWrapper(std::shared_ptr<Filter> iFilter,Event* iEvent):
+ModuleWrapper(iFilter.get(),iEvent),
+m_filter(iFilter),
+m_keep(false)
 {
 }
 
-FilterWrapper::FilterWrapper(const FilterWrapper* iWrapper):
-ModuleWrapper(iWrapper),
-m_filter(iWrapper->filter()),
-m_keep(false),
-m_wasRun(false)
+FilterWrapper::FilterWrapper(const FilterWrapper& iWrapper,Event* iEvent):
+ModuleWrapper(iWrapper,iEvent),
+m_filter(iWrapper.m_filter),
+m_keep(false)
 {
 }
 
+void
+FilterWrapper::doFilterAsync(WaitingTaskHolder iTask) {
+  doWorkAsync(std::move(iTask));
+}
 
 void
 FilterWrapper::reset()
 {
-  m_wasRun=false;
   m_keep=false;
-#if defined(PARALLEL_MODULES)  
   ModuleWrapper::reset();
-#endif
 }
 
-bool
-FilterWrapper::doFilter(Event& iEvent)
+void
+FilterWrapper::implDoWork()
 {
-  if(!m_wasRun) {
-    prefetch(iEvent);
-#if defined(PARALLEL_MODULES)
-    if(!m_wasRun) {
-      OMPLockSentry sentry(runLock());
-      if(!m_wasRun) {
-	m_keep = filter()->doFilter(iEvent);
-	//NOTE: needs a memory barrier to guarantee that
-	// m_wasRun is never set until after doFilter is run
-	__sync_synchronize();
-	m_wasRun=true;
-      }
-    }
-#else
-    OMPLockSentry sentry(runLock());
-    m_keep = filter()->doFilter(iEvent);
-    m_wasRun=true;
-#endif
-  }
-  return m_keep;
+  m_keep = filter()->doFilter(*event());
 }
 
 const std::string&
