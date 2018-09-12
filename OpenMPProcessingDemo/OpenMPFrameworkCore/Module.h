@@ -50,7 +50,8 @@ namespace demo {
    protected:
       Module(const std::string& iLabel, ThreadType iThreadType= kThreadUnsafe): 
       m_label(iLabel),
-      m_threadType(iThreadType) {}
+      m_threadType(iThreadType),
+      m_moduleID(0)   {}
       void registerMightGet(const std::string&, const std::string&);
    private:
       //only called by ModuleWrapper
