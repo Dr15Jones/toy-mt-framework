@@ -41,11 +41,10 @@ namespace demo {
     ~WaitingTaskHolder() = default;
 
     WaitingTaskHolder(const WaitingTaskHolder& iHolder) = default;
-
-
     WaitingTaskHolder(WaitingTaskHolder&& iOther) = default;
     
     WaitingTaskHolder& operator=(const WaitingTaskHolder& iRHS) = default;
+    WaitingTaskHolder& operator=(WaitingTaskHolder&& iRHS) = default;
     
     // ---------- const member functions ---------------------
     bool taskHasFailed() const { return m_task->exceptionPtr() != nullptr; }
