@@ -152,6 +152,15 @@ namespace  {
   };
 }
 
+namespace {
+  void
+  addProducerTo(demo::Event& iEvent, unsigned int& index, demo::Producer* iProd) {
+    iProd->setID(index++);
+    iEvent.addProducer(iProd);
+  }
+}
+
+
 void Event_test::getSyncDirect()
 {
   ValueProd* one(new ValueProd("one","one",1));
@@ -162,8 +171,9 @@ void Event_test::getSyncDirect()
   
   CPPUNIT_ASSERT(event.index()==1);
   
-  event.addProducer(one);
-  event.addProducer(two);
+  unsigned int id=0;
+  addProducerTo(event,id,one);
+  addProducerTo(event,id,two);
   
   CPPUNIT_ASSERT(event.get("one","one")==1);
   CPPUNIT_ASSERT(event.get("two","two")==2);
@@ -185,9 +195,10 @@ void Event_test::getSyncIndirect()
   
   CPPUNIT_ASSERT(event.index()==1);
   
-  event.addProducer(one);
-  event.addProducer(two);
-  event.addProducer(sum);
+  unsigned int id=0;
+  addProducerTo(event,id,one);
+  addProducerTo(event,id,two);
+  addProducerTo(event,id,sum);
   
   CPPUNIT_ASSERT(event.get("sum","")==3);
   
@@ -208,9 +219,10 @@ void Event_test::getSyncIndirectWithGetter()
   
   CPPUNIT_ASSERT(event.index()==1);
   
-  event.addProducer(one);
-  event.addProducer(two);
-  event.addProducer(sum);
+  unsigned int id=0;
+  addProducerTo(event,id,one);
+  addProducerTo(event,id,two);
+  addProducerTo(event,id,sum);
   
   CPPUNIT_ASSERT(event.get("sum","")==3);
   
@@ -235,10 +247,11 @@ void Event_test::callOnce()
   demo::Event event;
   event.setIndex(1);
   
-  event.addProducer(at);
-  event.addProducer(sum1);
-  event.addProducer(sum2);
-  event.addProducer(sum3);
+  unsigned int id=0;
+  addProducerTo(event,id,at);
+  addProducerTo(event,id,sum1);
+  addProducerTo(event,id,sum2);
+  addProducerTo(event,id,sum3);
   
   CPPUNIT_ASSERT(event.get("sum3","")==2);
   CPPUNIT_ASSERT(count.value()==1);
@@ -260,9 +273,10 @@ void Event_test::simultaneousBetweenInstancesOneEvent()
   demo::Event event;
   event.setIndex(1);
   
-  event.addProducer(at1);
-  event.addProducer(at2);
-  event.addProducer(sum3);
+  unsigned int id=0;
+  addProducerTo(event,id,at1);
+  addProducerTo(event,id,at2);
+  addProducerTo(event,id,sum3);
   
   CPPUNIT_ASSERT(event.get("sum3","")==2);
   CPPUNIT_ASSERT(count.value()==2);
@@ -284,9 +298,10 @@ void Event_test::simultaneousBetweenModulesOneEvent()
   demo::Event event;
   event.setIndex(1);
   
-  event.addProducer(at1);
-  event.addProducer(at2);
-  event.addProducer(sum3);
+  unsigned int id=0;
+  addProducerTo(event,id,at1);
+  addProducerTo(event,id,at2);
+  addProducerTo(event,id,sum3);
   
   CPPUNIT_ASSERT(event.get("sum3","")==2);
   CPPUNIT_ASSERT(count.value()==2);
@@ -308,9 +323,10 @@ void Event_test::simultaneousThreadUnsafeOneEvent()
   demo::Event event;
   event.setIndex(1);
   
-  event.addProducer(at1);
-  event.addProducer(at2);
-  event.addProducer(sum3);
+  unsigned int id=0;
+  addProducerTo(event,id,at1);
+  addProducerTo(event,id,at2);
+  addProducerTo(event,id,sum3);
   
   CPPUNIT_ASSERT(event.get("sum3","")==2);
   CPPUNIT_ASSERT(count.value()==2);
