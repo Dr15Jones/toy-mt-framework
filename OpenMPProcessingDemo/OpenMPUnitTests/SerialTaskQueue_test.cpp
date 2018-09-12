@@ -167,7 +167,7 @@ void SerialTaskQueue_test::stressTest()
    unsigned int index = 100;
    const unsigned int nTasks = 1000;
    while(0 != --index) {
-     std::atomic<unsigned int> waitCount{1};
+      std::atomic<unsigned int> waitCount{1};
       std::atomic<unsigned int> count{0};
       
       std::atomic<bool> waitToStart{true};
@@ -188,22 +188,23 @@ void SerialTaskQueue_test::stressTest()
             }
             --waitCount;
             });
-         
-         waitToStart=false;
-         for(unsigned int i=0; i<nTasks;++i) {
+          demo::TaskBase::spawn(std::move(pushTask));
+
+          waitToStart=false;
+          for(unsigned int i=0; i<nTasks;++i) {
             ++waitCount;
             queue.push([i,&count,&waitCount] {
-               ++count;
-               --waitCount;
-             });
-         }
-         --waitCount;
+                ++count;
+                --waitCount;
+              });
+          }
+          --waitCount;
 #pragma omp task
-         {
-           while(waitCount != 0) {
+          {
+            while(waitCount != 0) {
 #pragma omp taskyield
-           }
-         }
+            }
+          }
         }
       }
       CPPUNIT_ASSERT(2*nTasks==count);
