@@ -19,10 +19,21 @@
 
 using namespace demo;
 
+namespace {
+  std::shared_ptr<SerialTaskQueue> choseQueue(demo::ThreadType iType) {
+    if(iType == kThreadSafeBetweenModules) {
+      return std::make_shared<SerialTaskQueue>();
+    }else if(iType == kThreadUnsafe) {
+      return s_non_thread_safe_queue;
+    }
+    return std::shared_ptr<SerialTaskQueue>();
+  }
+}
+
 ModuleWrapper::ModuleWrapper(Module* iModule, Event* iEvent):
 m_module(iModule),
 m_event(iEvent),
-m_runQueue( m_module->threadType() == kThreadSafeBetweenInstances? static_cast<SerialTaskQueue*>(nullptr) : new SerialTaskQueue{}),
+m_runQueue( choseQueue(m_module->threadType()) ),
 m_workStarted{false}
 {
 }
