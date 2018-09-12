@@ -103,7 +103,7 @@ WaitingTaskList::announce()
       while(n == (next=n->nextNode())) {
          hardware_pause();
       }
-      auto t = n->m_task;
+      auto t = std::move(n->m_task);
       if(m_exceptionPtr) {
          t->dependentTaskFailed(m_exceptionPtr);
       }
