@@ -64,20 +64,24 @@ Event::get(const std::string& iModule,
    LookupMap::const_iterator it = m_lookupMap.find(LabelAndProduct(iModule.c_str(),iProduct.c_str()));
    assert(it != m_lookupMap.end());
    if(!it->second.wasCached()) {
-     assert(false);
-     /*      std::shared_ptr<EmptyWaitingTask> doneTask(new (tbb::task::allocate_root()) EmptyWaitingTask(), [](EmptyWaitingTask* t) {tbb::task::destroy(*t);});
-      //Ref count needs to be 1 since WaitList will increment and decrement it again
-      // doneTask->wait_for_all() waits for the task ref count to drop back to 1
-      doneTask->increment_ref_count();
-      it->second.producer()->doProduceAsync(doneTask.get());
+     //     assert(false);
+     std::shared_ptr<WaitingTask> doneTask(make_waiting_task( [](std::exception_ptr* const ) {}) );
+     WaitingTaskHolder doneTaskHolder(doneTask);
+#pragma omp parallel default(shared)
+     {
+#pragma omp single
+       {
+         it->second.producer()->doProduceAsync(std::move(doneTaskHolder));
+       }
+     }
       //fprintf(stderr,"Waiting to get %s\n",iModule.c_str());
-      doneTask->wait_for_all();
       //fprintf(stderr,"Done waiting to get %s\n",iModule.c_str());
       if(doneTask->exceptionPtr() != nullptr) {
+        
          std::rethrow_exception(*doneTask->exceptionPtr());
       }
       //tbb::task::destroy(*doneTask);
-      */
+      
    }
    return it->second.value();
 }
