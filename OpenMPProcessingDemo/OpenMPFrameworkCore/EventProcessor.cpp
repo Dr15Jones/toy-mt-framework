@@ -214,12 +214,14 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
 #pragma omp parallel default(shared)
   {
 #pragma omp single
-    for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
-      Schedule* scheduleTemp = m_schedules[0]->clone();
-      m_schedules.emplace_back(scheduleTemp);
-      handleNextEventAsync(h, nEvents);
+    {
+      for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
+        Schedule* scheduleTemp = m_schedules[0]->clone();
+        m_schedules.emplace_back(scheduleTemp);
+        handleNextEventAsync(h, nEvents);
+      }
+      handleNextEventAsync(h,0);
     }
-    handleNextEventAsync(h,0);
   }
 
   if(auto e = eventLoopWaitTask->exceptionPtr()) {
