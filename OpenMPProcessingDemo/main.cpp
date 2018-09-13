@@ -32,6 +32,11 @@ int main (int argc, char * const argv[]) {
     std::cout <<iE.what()<<std::endl;
     exit(1);
   }
+
+
+  const unsigned int nThreads = pConfig.get<unsigned int>("process.options.nThreads",omp_get_max_threads());
+  omp_set_num_threads(nThreads);
+
   //const size_t iterations= 3000;
   const size_t iterations = pConfig.get<size_t>("process.source.iterations");
   //const size_t iterations= 2;
@@ -43,8 +48,8 @@ int main (int argc, char * const argv[]) {
   
   boost::property_tree::ptree& filters=pConfig.get_child("process.filters");
   for(const boost::property_tree::ptree::value_type& f : filters) {
-    std::cout << f.second.get<std::string>("@type")<<std::endl;
     auto pF = demo::FactoryManager<demo::Filter>::create(f.second.get<std::string>("@type"),f.second);
+    std::cout << f.second.get<std::string>("@type")<<" "<<f.second.get<std::string>("@label")<<" "<<std::hex<<pF.get()<<std::dec<<std::endl;
     if(pF.get() != 0) {
       ep.addFilter(pF.release());
     } else {
@@ -55,8 +60,8 @@ int main (int argc, char * const argv[]) {
 
   boost::property_tree::ptree& producers=pConfig.get_child("process.producers");
   for(const boost::property_tree::ptree::value_type& p : producers) {
-    std::cout << p.second.get<std::string>("@type")<<std::endl;
     auto pP = demo::FactoryManager<demo::Producer>::create(p.second.get<std::string>("@type"),p.second);
+    std::cout << p.second.get<std::string>("@type")<<" "<<p.second.get<std::string>("@label")<<" "<<std::hex<<pP.get()<<std::dec<<std::endl;
     if(pP.get() != 0) {
       ep.addProducer(pP.release());
     } else {
@@ -110,8 +115,7 @@ int main (int argc, char * const argv[]) {
     microsecToSec * (theUsage.ru_stime.tv_usec + theUsage.ru_utime.tv_usec - startCPUTime.tv_usec);
    
     double realTime = tp.tv_sec - startRealTime.tv_sec + microsecToSec * (tp.tv_usec - startRealTime.tv_usec);
-    std::cout <<"# simultaneous events:"<<nEvents<<" max # threads allowed:"<<omp_get_max_threads()<<" total # events:"<<iterations<<" cpu time:" << cpuTime<<" real time:"<<realTime<<" events/sec:"<<iterations/realTime<<std::endl;
-
+    std::cout <<"# threads:"<<nThreads<<" # simultaneous events:"<<nEvents<<" total # events:"<<iterations<<" cpu time:" << cpuTime<<" real time:"<<realTime<<" events/sec:"<<iterations/realTime<<std::endl;
   }
 
   return 0;
