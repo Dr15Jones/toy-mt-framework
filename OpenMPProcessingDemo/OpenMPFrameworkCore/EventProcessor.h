@@ -47,7 +47,7 @@ namespace demo {
     std::vector<Filter*> m_filters;
     unsigned int m_nextModuleID;
 
-    std::atomic<bool> m_fatalJobErrorOccured;    
+    std::atomic<bool> m_fatalJobErrorOccured;
   };
 
 }

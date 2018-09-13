@@ -16,6 +16,7 @@
 #include "Queues.h"
 #include "Event.h"
 #include "SerialTaskQueue.h"
+#include "TimeMonitor.h"
 
 using namespace demo;
 
@@ -89,6 +90,7 @@ ModuleWrapper::doWorkAsync(WaitingTaskHolder iTask) {
         if(iPtr) {
           ptr = *iPtr;
         }
+        TimeMonitor::postPrefetching(m_event->transitionID(), m_module->id());
         if(runQueue()) {
           runQueue()->push([this,ptr]() {
               runModuleAfterAsyncPrefetch(ptr);
@@ -113,7 +115,9 @@ void
 ModuleWrapper::runModuleAfterAsyncPrefetch(std::exception_ptr iPtr) {
   if(not iPtr) {
     try {
+      TimeMonitor::preModuleCalled(m_event->transitionID(), m_module->id());
       implDoWork();
+      TimeMonitor::postModuleCalled(m_event->transitionID(), m_module->id());
     } catch(...) {
       iPtr = std::current_exception();
     }

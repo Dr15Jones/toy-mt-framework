@@ -21,6 +21,7 @@ set(CORE_FILES
     OpenMPFrameworkCore/Schedule.cpp
     OpenMPFrameworkCore/SerialTaskQueue.cpp    
     OpenMPFrameworkCore/SimpleSource.cpp
+    OpenMPFrameworkCore/TimeMonitor.cpp
     OpenMPFrameworkCore/WaitingTaskList.cpp)
 
 include_directories(BEFORE
