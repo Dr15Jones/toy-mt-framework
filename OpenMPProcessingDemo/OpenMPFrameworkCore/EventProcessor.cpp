@@ -210,7 +210,7 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
 
   auto eventLoopWaitTask = std::shared_ptr<WaitingTask>(make_waiting_task([](auto) {}));
 
-  WaitingTaskHolder h( std::move(eventLoopWaitTask) );
+  WaitingTaskHolder h( eventLoopWaitTask );
 #pragma omp parallel default(shared)
   {
 #pragma omp single
