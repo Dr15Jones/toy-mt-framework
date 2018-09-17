@@ -15,6 +15,7 @@
 #include "Source.h"
 #include "Producer.h"
 #include "Filter.h"
+#include "TimeMonitor.h"
 
 using namespace demo;
 
@@ -25,7 +26,7 @@ EventProcessor::EventProcessor():
   {
     m_schedules.emplace_back(std::make_unique<Schedule>());
     m_schedules[0]->setFatalJobErrorOccurredPointer(&m_fatalJobErrorOccured);
-    
+    TimeMonitor::openFile();    
   }
 
 EventProcessor::~EventProcessor()
@@ -45,6 +46,7 @@ EventProcessor::addPath(const std::string& iName,
 void 
 EventProcessor::addProducer(Producer* iProd) {
   iProd->setID(m_nextModuleID);
+  TimeMonitor::registerModule(iProd->label(),m_nextModuleID);
   ++m_nextModuleID;
   m_producers[iProd->label()]=iProd;
   m_schedules[0]->event()->addProducer(iProd);
@@ -53,6 +55,7 @@ EventProcessor::addProducer(Producer* iProd) {
 void
 EventProcessor::addFilter(Filter* iFilter) {
   iFilter->setID(m_nextModuleID);
+  TimeMonitor::registerModule(iFilter->label(),m_nextModuleID);
   ++m_nextModuleID;
   m_filters.push_back(iFilter);
   m_schedules[0]->addFilter(iFilter);
@@ -210,6 +213,7 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
 
   auto eventLoopWaitTask = make_empty_waiting_task();
   eventLoopWaitTask->increment_ref_count();
+  TimeMonitor::startTimer(iNumConcurrentEvents);
   {
     WaitingTaskHolder h{ eventLoopWaitTask.get() };
     for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {

@@ -21,6 +21,7 @@ set(CORE_FILES
     TBBFrameworkCore/Schedule.cpp
     TBBFrameworkCore/SerialTaskQueue.cpp
     TBBFrameworkCore/SimpleSource.cpp
+    TBBFrameworkCore/TimeMonitor.cpp
     TBBFrameworkCore/WaitingList.cpp
     TBBFrameworkCore/WaitingTaskList.cpp)
 
