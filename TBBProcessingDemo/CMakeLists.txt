@@ -30,30 +30,30 @@ add_library(TBBFrameworkCore SHARED ${CORE_FILES})
 target_link_libraries(TBBFrameworkCore ${TBB_LIBRARIES})
 
 set(TEST_FILES
-  TBBTestModules/BusyWaitPassFilter.cpp
-  TBBTestModules/BusyWaitProducer.cpp
-  TBBTestModules/EventTimesBusyWaitPassFilter.cpp
-  TBBTestModules/EventTimesBusyWaitProducer.cpp
-  TBBTestModules/EventTimesPassFilterBase.cpp
-  TBBTestModules/EventTimesProducerBase.cpp
-  TBBTestModules/EventTimesSleepingPassFilter.cpp
-  TBBTestModules/EventTimesSleepingProducer.cpp
-  TBBTestModules/EventTimesSyncGetPassFilterBase.cpp
-  TBBTestModules/EventTimesSyncGetProducerBase.cpp
-  TBBTestModules/EventTimesSyncGetSleepingPassFilter.cpp
-  TBBTestModules/EventTimesSyncGetSleepingProducer.cpp
-  TBBTestModules/FastPassFilter.cpp
-  TBBTestModules/FastProducer.cpp
-  TBBTestModules/PassFilter.cpp
-  TBBTestModules/SleepingPassFilter.cpp
-  TBBTestModules/SleepingProducer.cpp
-  TBBTestModules/ThreadSafeProducer.cpp
-  TBBTestModules/ThreadSafeWhichReadsProducer.cpp
-  TBBTestModules/ThreadSaferGetterFilter.cpp
-  TBBTestModules/ThrowingFilter.cpp
-  TBBTestModules/ThrowingProducer.cpp
-  TBBTestModules/Waiter.cpp
-  TBBTestModules/thread_type_from_config.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/BusyWaitPassFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/BusyWaitProducer.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesBusyWaitPassFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesBusyWaitProducer.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesPassFilterBase.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesProducerBase.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSleepingPassFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSleepingProducer.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSyncGetPassFilterBase.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSyncGetProducerBase.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSyncGetSleepingPassFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSyncGetSleepingProducer.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/FastPassFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/FastProducer.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/PassFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/SleepingPassFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/SleepingProducer.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/ThreadSafeProducer.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/ThreadSafeWhichReadsProducer.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/ThreadSaferGetterFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/ThrowingFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/ThrowingProducer.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/Waiter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/thread_type_from_config.cpp
   ${CMAKE_SOURCE_DIR}/BusyWaitCalibration/busyWait.cpp
   ${CMAKE_SOURCE_DIR}/BusyWaitCalibration/busy_wait_scale_factor.cpp)
 
