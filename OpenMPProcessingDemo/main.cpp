@@ -115,7 +115,7 @@ int main (int argc, char * const argv[]) {
     microsecToSec * (theUsage.ru_stime.tv_usec + theUsage.ru_utime.tv_usec - startCPUTime.tv_usec);
    
     double realTime = tp.tv_sec - startRealTime.tv_sec + microsecToSec * (tp.tv_usec - startRealTime.tv_usec);
-    std::cout <<"# threads:"<<nThreads<<" # simultaneous events:"<<nEvents<<" total # events:"<<iterations<<" cpu time:" << cpuTime<<" real time:"<<realTime<<" events/sec:"<<iterations/realTime<<std::endl;
+    std::cout <<"OMP:# threads:"<<nThreads<<" # simultaneous events:"<<nEvents<<" total # events:"<<iterations<<" cpu time:" << cpuTime<<" real time:"<<realTime<<" events/sec:"<<iterations/realTime<<std::endl;
   }
 
   return 0;
