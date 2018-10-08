@@ -33,6 +33,7 @@ set(TEST_FILES
   ${CMAKE_SOURCE_DIR}/CommonTestModules/BusyWaitPassFilter.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/BusyWaitProducer.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesBusyWaitPassFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesBusyWaitParallelForPassFilter.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesBusyWaitProducer.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesPassFilterBase.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesProducerBase.cpp
