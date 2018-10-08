@@ -36,6 +36,7 @@ set(TEST_FILES
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesPassFilterBase.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesProducerBase.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSleepingPassFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSleepingParallelForPassFilter.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSleepingProducer.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSyncGetPassFilterBase.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSyncGetProducerBase.cpp
