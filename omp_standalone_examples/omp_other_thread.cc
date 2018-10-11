@@ -1,4 +1,8 @@
+// Using gcc 8.2 the taskyield does not cause any task to be stolen and
+//  run on the thread
 //g++ -std=c++17 -O3 omp_other_thread.cc -fopenmp -o omp_other_thread
+//
+// Using clang 6.01 the taskyield does do task stealing
 //clang++ -std=c++17 -O3 omp_other_thread.cc -fopenmp -o omp_other_thread
 #include "omp.h"
 #include <cmath>
@@ -40,26 +44,21 @@ int main() {
   omp_set_num_threads(2);
 
   std::atomic<bool> startServer{false};
+  std::atomic<bool> serverFinished{false};
   std::atomic<int> nCalls{0};
 
-  std::thread serverThread([&startServer,&nCalls]() {
+  std::thread serverThread([&startServer,&nCalls,&serverFinished]() {
       safeCout([](std::ostream& out) {
           out << "server thread id "<<threadID()<<std::endl;
         });
       while(not startServer.load()) ;
-
-#pragma omp task untied default(shared)
-      {
-        safeCout([](auto& out) {
-            out << "begin task thread id "<<threadID()<<std::endl;
-          });
-        if( 0.5 < integrate(nIterations)) {
-          ++nCalls;
-        }
-        safeCout([](auto& out) {
-            out << "end task thread id "<<threadID()<<std::endl;
-          });
+      if( 0.5 < integrate(2*nIterations)) {
+        ++nCalls;
       }
+      safeCout([](auto& out) {
+          out << "server finished thread id "<<threadID()<<std::endl;
+        });
+      serverFinished = true;
     });
 
   std::atomic<int> nStartedTasksFromLoop{0};
@@ -75,21 +74,44 @@ int main() {
         while(nStartedTasksFromLoop.load() < 1);
         startServer=true;
         safeCout([](auto& out) {
-            out << "end server start task thread id "<<threadID()<<std::endl;
+            out << "begin taskyield thread id "<<threadID()<<std::endl;
           });
+        //taskyield requires the result from the server to be processed by
+        // the same thread that made the original request, even if there
+        // is another OpenMP thread which is not busy.
+        while(not serverFinished.load() ) {
+#pragma omp taskyield
+        }
+        safeCout([](auto& out) {
+            out << "taskyield done thread id "<<threadID()<<std::endl;
+          });
+#pragma omp task untied default(shared)
+        {
+          safeCout([](auto& out) {
+              out << "begin task thread id "<<threadID()<<std::endl;
+            });
+          if( 0.5 < integrate(nIterations/10)) {
+            ++nCalls;
+          }
+          safeCout([](auto& out) {
+              out << "end task thread id "<<threadID()<<std::endl;
+            });
+          serverFinished = true;
+        }
+
       }
-#pragma omp taskloop
-      for(int i =0; i<3; ++i) 
+      for(int i =0; i<4; ++i) 
+#pragma omp task untied firstprivate(i) default(shared)
         {
           safeCout([i](auto& out) {
-              out << "begin taskloop index "<<i<<" thread id "<<threadID()<<std::endl;
+              out << "begin task index "<<i<<" thread id "<<threadID()<<std::endl;
             });
           ++nStartedTasksFromLoop;
           if( 0.5 < integrate(nIterations)) {
             ++nCalls;
           }
           safeCout([i](auto& out) {
-              out << "end taskloop index "<<i<<" thread id "<<threadID()<<std::endl;
+              out << "end task index "<<i<<" thread id "<<threadID()<<std::endl;
             });
         }
     }
