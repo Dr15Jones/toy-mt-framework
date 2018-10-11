@@ -23,7 +23,7 @@ namespace demo {
     
     //Takes ownership of iTask
     static void spawn(TaskBase* iTask) {
-#pragma omp task untied default(shared)
+#pragma omp task untied firstprivate(iTask)
       {
         try {
           iTask->doSpawn();
