@@ -66,24 +66,34 @@ int main() {
 #pragma omp parallel
   {
 #pragma omp single
-#pragma omp taskloop
-    for(int i =0; i<3; ++i) 
     {
-      safeCout([i](auto& out) {
-          out << "begin taskloop index "<<i<<" thread id "<<threadID()<<std::endl;
-        });
-      if(++nStartedTasksFromLoop ==2) {
+#pragma omp task untied
+      {
+        safeCout([](auto& out) {
+            out << "begin server start task thread id "<<threadID()<<std::endl;
+          });
+        while(nStartedTasksFromLoop.load() < 1);
         startServer=true;
+        safeCout([](auto& out) {
+            out << "end server start task thread id "<<threadID()<<std::endl;
+          });
       }
-      if( 0.5 < integrate(nIterations)) {
-        ++nCalls;
-      }
-      safeCout([i](auto& out) {
-          out << "end taskloop index "<<i<<" thread id "<<threadID()<<std::endl;
-        });
+#pragma omp taskloop
+      for(int i =0; i<3; ++i) 
+        {
+          safeCout([i](auto& out) {
+              out << "begin taskloop index "<<i<<" thread id "<<threadID()<<std::endl;
+            });
+          ++nStartedTasksFromLoop;
+          if( 0.5 < integrate(nIterations)) {
+            ++nCalls;
+          }
+          safeCout([i](auto& out) {
+              out << "end taskloop index "<<i<<" thread id "<<threadID()<<std::endl;
+            });
+        }
     }
   }
-
   serverThread.join();
   std::cout <<"nCalls "<<nCalls.load()<<std::endl;
 
