@@ -8,7 +8,7 @@ COMPILING
         https://www.threadingbuildingblocks.org
 3) create a subdirectory named build to hold the build products
 4) in the build directory, run the command
-        cmake -DBOOST_ROOT=<boost install directory> -DTBB_ROOT_DIR=<tbb install directory> ..
+        cmake -DCMAKE_BUILD_TYPE=Release -DBOOST_ROOT=<boost install directory> -DTBB_ROOT_DIR=<tbb install directory> ..
 5) Then just compile
 	make 
 
