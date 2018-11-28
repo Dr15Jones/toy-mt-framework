@@ -15,7 +15,8 @@ namespace demo {
   template <typename T>
   class FactoryBase {
   public:
-    FactoryBase() {}
+    FactoryBase() = default;
+    virtual ~FactoryBase() = default;
     
     virtual std::unique_ptr<T> create(const boost::property_tree::ptree&) const =0;
     
@@ -26,7 +27,7 @@ namespace demo {
   public:
     Factory() {}
     
-    virtual std::unique_ptr<T> create(const boost::property_tree::ptree& iPTree) const {
+    std::unique_ptr<T> create(const boost::property_tree::ptree& iPTree) const final {
       return std::unique_ptr<T>(new U(iPTree) );
     }
   };
