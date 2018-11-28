@@ -11,6 +11,7 @@
 
 #include <atomic>
 #include <exception>
+#include <memory>
 #include "tbb/task.h"
 
 namespace demo {
