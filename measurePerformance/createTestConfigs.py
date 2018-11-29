@@ -14,7 +14,10 @@ process = configTemplate['process']
 fileName = sys.argv[1].split(os.sep)[-1]
 fileNameParts = fileName.split(".")
 
-for nThreads,nStreams,nEvents in testParams:
+if 'busyWaitScaleFactor' in testParams:
+    process['options']['busyWaitScaleFactor'] = testParams['busyWaitScaleFactor']
+
+for nThreads,nStreams,nEvents in testParams['tests']:
     process['options']["nThreads"]=nThreads
     process['options']["nSimultaneousEvents"]=nStreams
     process['source']["iterations"] = nEvents
