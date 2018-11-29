@@ -89,7 +89,7 @@ if(NOT TBB_FOUND)
   ##################################
   
   if(NOT DEFINED TBB_USE_DEBUG_BUILD)
-    if(CMAKE_BUILD_TYPE MATCHES "[Debug|DEBUG|debug|RelWithDebInfo|RELWITHDEBINFO|relwithdebinfo]")
+    if(CMAKE_BUILD_TYPE MATCHES Debug|DEBUG|debug|RelWithDebInfo|RELWITHDEBINFO|relwithdebinfo)
       set(TBB_USE_DEBUG_BUILD TRUE)
     else()
       set(TBB_USE_DEBUG_BUILD FALSE)
@@ -187,7 +187,8 @@ if(NOT TBB_FOUND)
     else()
       set(TBB_${_comp}_FOUND FALSE)
     endif()
-    
+ 
+   
     mark_as_advanced(TBB_${_comp}_LIBRARY_RELEASE)
     mark_as_advanced(TBB_${_comp}_LIBRARY_DEBUG)
     mark_as_advanced(TBB_${_comp}_LIBRARY)
