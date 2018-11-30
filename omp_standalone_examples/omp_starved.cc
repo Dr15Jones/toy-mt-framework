@@ -1,4 +1,8 @@
 //g++ -std=c++17 -O3 omp_starved.cc -fopenmp
+//clang++ -std=c++17 -O3 omp_starved.cc -fopenmp -o omp_starved_taskloop
+//clang++ -std=c++17 -DFOR_ONLY -O3 omp_starved.cc -fopenmp -o omp_starved_for_only
+//clang++ -std=c++17 -DPAR_FOR -O3 omp_starved.cc -fopenmp -o omp_starved_par_for
+
 #include "omp.h"
 #include <cmath>
 #include <atomic>
@@ -8,12 +12,16 @@
 namespace demo {
   template<typename T>
     void parallel_for(unsigned int iRanges, T&& iFunctor) {
+#if defined(FOR_ONLY)
     //Using the following causes the program to starve with no progress
-//#pragma omp for
-//Works, but is inefficient
+#pragma omp for
+#elif defined(PAR_FOR)
+    //Works, but is inefficient
 #pragma omp parallel for
-//Using the following works efficiently
-//#pragma omp taskloop
+#else
+    //Using the following works efficiently
+#pragma omp taskloop
+#endif
     for(unsigned int i=0; i<iRanges; ++i) {
       iFunctor(i);
     }
