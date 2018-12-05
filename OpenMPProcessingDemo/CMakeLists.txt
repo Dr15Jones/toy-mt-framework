@@ -54,13 +54,12 @@ set(TEST_FILES
   ${CMAKE_SOURCE_DIR}/CommonTestModules/ThrowingFilter.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/ThrowingProducer.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/Waiter.cpp
-  ${CMAKE_SOURCE_DIR}/CommonTestModules/thread_type_from_config.cpp
-  ${CMAKE_SOURCE_DIR}/BusyWaitCalibration/busyWait.cpp
-  ${CMAKE_SOURCE_DIR}/BusyWaitCalibration/busy_wait_scale_factor.cpp)
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/thread_type_from_config.cpp)
 
 include_directories(BEFORE
     ${CMAKE_SOURCE_DIR}/BusyWaitCalibration)
-add_library(OpenMPTestModules SHARED ${TEST_FILES} OpenMPFrameworkCore)
+add_library(OpenMPTestModules SHARED ${TEST_FILES})
+target_link_libraries(OpenMPTestModules BusyWait OpenMPFrameworkCore)
 
 if(CPPUNIT_FOUND)
   include_directories(${CPPUNIT_INCLUDE_DIR})
