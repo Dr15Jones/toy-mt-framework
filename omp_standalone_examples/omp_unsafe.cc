@@ -4,6 +4,8 @@
 //
 // Using clang, we do see task stealing.
 //clang++ -std=c++17 -O3 omp_unsafe.cc -fopenmp -o omp_unsafe
+// show effect of using parallel for
+//clang++ -std=c++17 -DPAR_FOR -O3 omp_unsafe.cc -fopenmp -o omp_unsafe_par_for
 #include "omp.h"
 #include <cmath>
 #include <atomic>
@@ -14,7 +16,13 @@
 namespace demo {
   template<typename T>
     void parallel_for(unsigned int iRanges, T&& iFunctor) {
+#if defined(PAR_FOR)
+    omp_set_nested(1);
+    omp_set_dynamic(1);
+#pragma omp parallel for
+#else
 #pragma omp taskloop
+#endif
     for(unsigned int i=0; i<iRanges; ++i) {
       iFunctor(i);
     }
@@ -89,6 +97,9 @@ namespace {
 int main() {
 
   omp_set_num_threads(10);
+#if defined(PAR_FOR)
+  std::cout <<"control the number of allowed threads with env variable OMP_THREAD_LIMIT"<<std::endl;
+#endif
 
   std::atomic<int> count{0};
 
@@ -97,6 +108,9 @@ int main() {
   std::atomic<bool> shouldStart{false};
   std::atomic<bool> startParallel{false};
   std::atomic<int> waitingExtraTasks{0};
+
+  //Only needed for PAR_FOR case
+  bool ranFirstLoop = false;
 
   struct timeval startRealTime;
   gettimeofday(&startRealTime, 0);
@@ -129,7 +143,7 @@ int main() {
         }
         std::atomic<int> nStarted{0};
         demo::parallel_for(10, [&count,taskThreadID,&countExtraWorkDone,&nStarted,
-                                &shouldStart,&startParallel, &waitingExtraTasks](auto j) {
+                                &shouldStart,&startParallel, &waitingExtraTasks, &ranFirstLoop](auto j) {
             auto tid = threadID();
             if(taskThreadID == tid) {
               std::unique_lock<std::mutex> l{s_coutMutex};
@@ -139,7 +153,9 @@ int main() {
               std::cout <<"start parallel_for task "<<j<<" on other thread "<<tid<<std::endl;
             }
             ++nStarted;
+#if !defined(PAR_FOR)
             while(nStarted.load() <9) {}
+#endif
             shouldStart = true;
             while(not startParallel) {};
             if(taskThreadID == tid) {
@@ -147,8 +163,17 @@ int main() {
                 std::unique_lock<std::mutex> l{s_coutMutex};
                 std::cout <<"start parallel_for work "<<j<<" on task's thread "<<tid<<std::endl;
               }
-              if(integrate(nIterations/10)>0.5) {
-                ++count;
+              if(not ranFirstLoop) {
+                if(integrate(nIterations/10)>0.5) {
+                  ++count;
+                }
+#if defined(PAR_FOR)
+                ranFirstLoop = true;
+              } else {
+                if(integrate(100*nIterations)>0.5) {
+                  ++count;
+                }
+#endif
               }
               std::unique_lock<std::mutex> l{s_coutMutex};
               std::cout <<"waiting extra tasks "<<waitingExtraTasks.load()<<std::endl;
