@@ -1,5 +1,5 @@
 #include <iostream>
-#include <assert.h>
+#include <cassert>
 #include <cmath>
 #include <boost/property_tree/json_parser.hpp>
 #include <sstream>
@@ -35,7 +35,20 @@ int main (int argc, char * const argv[]) {
 
 
   const unsigned int nThreads = pConfig.get<unsigned int>("process.options.nThreads",omp_get_max_threads());
-  omp_set_num_threads(nThreads);
+  setenv("OMP_THREAD_LIMIT",std::to_string(nThreads).c_str(), 0);
+  assert(nThreads == omp_get_thread_limit());
+
+  //if nTopThreads != nThreads then some threads are reserved for nested parallelism
+  omp_set_nested(0);
+  const unsigned int nTopThreads = pConfig.get<unsigned int>("process.options.nTopThreads",nThreads);
+  if(nThreads != nTopThreads) {
+    omp_set_max_active_levels(2);
+    omp_set_nested(1);
+    omp_set_dynamic(1);
+  }
+
+
+  omp_set_num_threads(nTopThreads);
 
   //const size_t iterations= 3000;
   const size_t iterations = pConfig.get<size_t>("process.source.iterations");
@@ -115,7 +128,7 @@ int main (int argc, char * const argv[]) {
     microsecToSec * (theUsage.ru_stime.tv_usec + theUsage.ru_utime.tv_usec - startCPUTime.tv_usec);
    
     double realTime = tp.tv_sec - startRealTime.tv_sec + microsecToSec * (tp.tv_usec - startRealTime.tv_usec);
-    std::cout <<"OMP:# threads:"<<nThreads<<" # simultaneous events:"<<nEvents<<" total # events:"<<iterations<<" cpu time:" << cpuTime<<" real time:"<<realTime<<" events/sec:"<<iterations/realTime<<std::endl;
+    std::cout <<"OMP:# threads:"<<nThreads<<" # top threads:"<<nTopThreads<<" # simultaneous events:"<<nEvents<<" total # events:"<<iterations<<" cpu time:" << cpuTime<<" real time:"<<realTime<<" events/sec:"<<iterations/realTime<<std::endl;
   }
 
   return 0;
