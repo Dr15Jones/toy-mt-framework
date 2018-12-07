@@ -11,6 +11,14 @@
 namespace demo {
   template<typename T>
     void parallel_for(unsigned int iRanges, T&& iFunctor) {
+#pragma omp parallel for
+    for(unsigned int i=0; i<iRanges; ++i) {
+      iFunctor(i);
+    }
+  }
+
+  template<typename T>
+    void task_stealing_parallel_for(unsigned int iRanges, T&& iFunctor) {
 #pragma omp taskloop
     for(unsigned int i=0; i<iRanges; ++i) {
       iFunctor(i);

@@ -33,11 +33,13 @@ set(TEST_FILES
   ${CMAKE_SOURCE_DIR}/CommonTestModules/BusyWaitProducer.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesBusyWaitPassFilter.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesBusyWaitParallelForPassFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesBusyWaitTaskStealingParallelForPassFilter.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesBusyWaitProducer.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesPassFilterBase.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesProducerBase.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSleepingPassFilter.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSleepingParallelForPassFilter.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSleepingTaskStealingParallelForPassFilter.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSleepingProducer.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSyncGetPassFilterBase.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/EventTimesSyncGetProducerBase.cpp

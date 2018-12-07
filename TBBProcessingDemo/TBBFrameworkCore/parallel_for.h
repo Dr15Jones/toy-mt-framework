@@ -17,5 +17,10 @@ namespace demo {
         tbb::parallel_for( 0U, iRanges, [&]( int j ) { iFunctor(j); });
       });
   }
+
+  template<typename T>
+    void task_stealing_parallel_for(unsigned int iRanges, T&& iFunctor) {
+    tbb::parallel_for( 0U, iRanges, [&]( int j ) { iFunctor(j); });
+  }
 }
 #endif
