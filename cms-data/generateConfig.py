@@ -74,7 +74,7 @@ with open('module-timings.json', 'r') as infile:
     moduleTimings=json.load(infile)
 
 
-nEvents="100"
+nEvents="200"
 eventTimes = moduleTimings['RECOoutput']
 storageToWrite = list()
 mods=set(moduleConsumes['RECOoutput'])
@@ -102,7 +102,7 @@ config = {
      { "@label" : "output",
        "@type" : "demo::EventTimesBusyWaitPassFilter",
        "threadType" : "ThreadSafeBetweenModules",
-       "eventTimes": eventTimes[50:150],
+       "eventTimes": eventTimes,
        "toGet" : storageToWrite
      }
    ],
@@ -137,7 +137,7 @@ for mod in consumed:
    eventTimes = moduleTimings.get(mod,[0.0])
    times=[0.0]
    if len(eventTimes)==200:
-       times=eventTimes[50:150]
+       times=eventTimes
    else:
        print 'module %s is consumed but has no event times' % mod
    toGet = list()
@@ -159,25 +159,25 @@ eventTimes = moduleTimings.get("source/HLT",[0.])
 r = { "@label": "rawDataCollector",
       "@type" : "demo::EventTimesBusyWaitProducer",
       "threadType" : "ThreadUnsafe",
-       "eventTimes": eventTimes[0:100],
+       "eventTimes": eventTimes,
        "toGet" : []
     }
 t = { "@label": "TriggerResults/HLT",
       "@type" : "demo::EventTimesBusyWaitProducer",
       "threadType" : "ThreadUnsafe",
-       "eventTimes": [0.0]*100,
+       "eventTimes": [0.0]*200,
        "toGet" : []
     }
 h = { "@label": "hltGtStage2ObjectMap/HLT",
       "@type" : "demo::EventTimesBusyWaitProducer",
       "threadType" : "ThreadUnsafe",
-       "eventTimes": [0.0]*100,
+       "eventTimes": [0.0]*200,
        "toGet" : []
     }
 a = { "@label": "hltTriggerSummaryAOD/HLT",
       "@type" : "demo::EventTimesBusyWaitProducer",
       "threadType" : "ThreadUnsafe",
-       "eventTimes": [0.0]*100,
+       "eventTimes": [0.0]*200,
        "toGet" : []
     }
 producers.append(r)
