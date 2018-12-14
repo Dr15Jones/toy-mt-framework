@@ -10,6 +10,7 @@
 #include <mutex>
 #include <iostream>
 #include <memory>
+#include <unistd.h>
 //#include <sys/time.h>
 
 namespace demo {
@@ -88,8 +89,15 @@ namespace {
   void processNextAsync(ProcessingState& iState, MockStorage& iStore, long int nIterations) {
     auto l = --iState.m_leftToProcess;
     if( l > 0 ) {
-      std::cout <<l<<std::endl;
-      auto sp = std::make_shared<std::atomic<short>>(2);
+      {
+        std::unique_lock<std::mutex> lck{s_coutMutex};
+        std::cout <<l<<std::endl;
+      }
+      auto sp = std::make_shared<std::atomic<short>>(3);
+#pragma omp task untied default(shared) firstprivate(nIterations, sp)
+      {
+        longProcessTask(iState,iStore, nIterations, sp);
+      }
 #pragma omp task untied default(shared) firstprivate(nIterations, sp)
       {
         longProcessTask(iState,iStore, nIterations, sp);
@@ -104,12 +112,10 @@ namespace {
   void longProcessTask(ProcessingState& iState, MockStorage& iStore, long int nIterations, std::shared_ptr<std::atomic<short>> iPtr) {
     task_on_thread_running(true);
 
-    if(integrate(nIterations) > 0.5) {
-      //this is always true and just exists to avoid optimizing away the function call
-      task_on_thread_running(false);
-      if ( 0 == --(*iPtr) ) {
-        iStore.storeAsync(iState);
-      }
+    usleep(nIterations);
+    task_on_thread_running(false);
+    if ( 0 == --(*iPtr) ) {
+      iStore.storeAsync(iState);
     }
   }
 
@@ -141,13 +147,12 @@ namespace {
   }
 
   void MockStorage::store(ProcessingState& iState) {
-    std::array<double, 5> values = {{0,0,0,0,0}};
-    auto tid = threadID();
+     auto tid = threadID();
     task_on_thread_running(true);
 
     std::atomic<int> nParallel{0};
     std::atomic<int> maxParallel{0};
-    demo::parallel_for(5, [&values, nIterations=m_nIterations, &nParallel, &maxParallel, tid](int iIndex) {
+    demo::parallel_for(5, [nIterations=m_nIterations, &nParallel, &maxParallel, tid](int iIndex) {
         auto p = ++nParallel;
         auto max =maxParallel.load();
         while(p > max) {
@@ -159,28 +164,25 @@ namespace {
         } /*else {
           n = n/10;
           } */
-        if(iIndex == 3) {
+        if(iIndex == 4) {
           n *= 5;
         }
-        values[iIndex] = integrate(n);
+        usleep(n);
         if(tid != threadID() ) {
           task_on_thread_running(false);
         }
         --nParallel;
       });
 
-    //if(maxParallel > 1) {
-    std::cout <<"max parallel " <<maxParallel.load()<<std::endl;
-      //}
-    double sum = 0;
-    for( auto v : values) {
-      sum += v;
+    if(maxParallel > 1) {
+      std::unique_lock<std::mutex> l{s_coutMutex};
+      std::cout <<"max parallel " <<maxParallel.load()<<std::endl;
     }
+
     task_on_thread_running(false);
 
-    if(sum > 0.01) {
-      processNextAsync(iState, *this, m_nIterations);
-    }
+    processNextAsync(iState, *this, m_nIterations);
+
     m_inUse = false;
 
     ++iState.m_nProcessed;
@@ -189,16 +191,22 @@ namespace {
   }
 }
 
-int main() {
+int main(int argc, char * argv[] ) {
 
-  omp_set_num_threads(12);
+  if(argc != 4) { return 1;}
 
-  ProcessingState state = {100, 0};
-  constexpr long int nIterations = 100000000;
+
+  auto const nThreads = std::stoi(argv[1]);
+
+  omp_set_num_threads(nThreads);
+
+  const int nEvents = std::stoi(argv[3]);
+  ProcessingState state = {nEvents, 0};
+  constexpr long int nIterations = 1000000;
   //constexpr long int nIterations = 100;
   MockStorage storage(nIterations);
 
-  constexpr int nStreams = 12;
+  const int nStreams = std::stoi(argv[2]);
 #pragma omp parallel default(shared)
   {
 #pragma omp single
@@ -208,103 +216,8 @@ int main() {
       }
     }
   }
-  
+
+  std::cout <<"n Threads "<<nThreads<<" nStreams "<<nStreams <<" nEvents "<< nEvents<<std::endl;
   std::cout <<"n processed "<<state.m_nProcessed.load()<<" max concurrent toplevel tasks "<<maxRunningTasks.load() <<std::endl;
   return 0;
 }
-  /*
-  std::atomic<int> count{0};
-
-
-  std::atomic<int> countExtraWorkDone{0};
-  std::atomic<bool> shouldStart{false};
-  std::atomic<bool> startParallel{false};
-  std::atomic<int> waitingExtraTasks{0};
-
-  struct timeval startRealTime;
-  gettimeofday(&startRealTime, 0);
-
-  constexpr int nIterations = 10000000;
-
-  std::atomic<int> threadIDUsedByParallel{-1};
-
-#pragma omp parallel default(shared)
-  {
-#pragma omp single
-    {
-#pragma omp task untied default(shared)
-      {
-        while(not shouldStart.load());
-        for(int i=0; i<10; ++i) {
-          createOtherTask(i,nIterations,waitingExtraTasks,threadIDUsedByParallel,count);
-        }
-        startParallel = true;
-      }
-
-#pragma omp task untied default(shared)
-      {
-        task_on_thread_running(true);
-        auto taskThreadID = threadID();
-        threadIDUsedByParallel = taskThreadID;
-        {
-          std::unique_lock<std::mutex> l{s_coutMutex};
-          std::cout <<"thread id used by parallel task starter "<<taskThreadID<<std::endl;
-        }
-        std::atomic<int> nStarted{0};
-        demo::parallel_for(10, [&count,taskThreadID,&countExtraWorkDone,&nStarted,
-                                &shouldStart,&startParallel, &waitingExtraTasks](auto j) {
-            auto tid = threadID();
-            if(taskThreadID == tid) {
-              std::unique_lock<std::mutex> l{s_coutMutex};
-              std::cout <<"start parallel_for task "<<j<<" on task's thread "<<tid<<std::endl;
-            } else {
-              std::unique_lock<std::mutex> l{s_coutMutex};
-              std::cout <<"start parallel_for task "<<j<<" on other thread "<<tid<<std::endl;
-            }
-            ++nStarted;
-            while(nStarted.load() <9) {}
-            shouldStart = true;
-            while(not startParallel) {};
-            if(taskThreadID == tid) {
-              {
-                std::unique_lock<std::mutex> l{s_coutMutex};
-                std::cout <<"start parallel_for work "<<j<<" on task's thread "<<tid<<std::endl;
-              }
-              if(integrate(nIterations/10)>0.5) {
-                ++count;
-              }
-              std::unique_lock<std::mutex> l{s_coutMutex};
-              std::cout <<"waiting extra tasks "<<waitingExtraTasks.load()<<std::endl;
-              return;
-            }
-            {
-              std::unique_lock<std::mutex> l{s_coutMutex};
-              std::cout <<"start parallel_for work "<<j<<" on other thread "<<tid<<std::endl;
-            }
-            ++countExtraWorkDone;
-            if(integrate(100*nIterations)>0.5) {
-              ++count;
-            }
-            std::unique_lock<std::mutex> l{s_coutMutex};
-            std::cout <<"end parallel_for work "<<j<<" on other thread "<<tid<<std::endl;
-
-          });
-        task_on_thread_running(false);
-        threadIDUsedByParallel = -1;
-      }
-    }
-  }
-
-  */
-/*
-  struct timeval tp;
-  gettimeofday(&tp, 0);
-  
-  constexpr double microsecToSec = 1E-6;
-
-  double realTime = tp.tv_sec - startRealTime.tv_sec + microsecToSec * (tp.tv_usec - startRealTime.tv_usec);
-
-  std::cout <<"pass threshold "<<count.load()<<" max concurrent toplevel tasks "<<maxRunningTasks.load() <<" # times extra threads used "<<countExtraWorkDone.load()<<" time "<<realTime<<std::endl;
-  return 0;
-}
-*/
