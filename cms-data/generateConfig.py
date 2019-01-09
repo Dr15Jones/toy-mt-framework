@@ -17,54 +17,63 @@ moduleConsumes = defaultdict(list)
 moduleTimings = defaultdict(list)
 consumedBy = defaultdict(list)
 processName = None
-module2space=re.compile("^\s\s(\S*)/'(\S*)'\n")
-module4space=re.compile("^\s\s\s\s(\S*)/'(\S*)'\n")
-fourspace=re.compile("^\s\s\s\s(\S*)\s'(\S*)'\s'(|\S*)'\s'(|\S*)'")
-modules=re.compile("^\s\s(\S*)/'(\S*)' consumes products from these modules:$")
-consumes=re.compile("^\s\s(\S*)/'(\S*)' consumes:$")
-tickspace=re.compile("' '")
-constructing=re.compile("\+\+\+\+ starting: constructing module with label '(\S*)' id = (\S*)")
-
+module2space=re.compile("^([^']*)/'([^']*)'\n")
+module4space=re.compile("^([^']*)/'([^']*)'\n")
+consume4space=re.compile("^([^']*)\s'([^']*)'(.*)")
+modules=re.compile("^([^'/]*)/'([^']*)' consumes products from these modules:$")
+consumes=re.compile("^([^'/]*)/'([^']*)' consumes:$")
+constructing=re.compile("\+\+\+\+ starting: constructing module with label '(.*)' id = (\S*)")
+fourpluses=re.compile("^\+\+\+\+")
 
 constructed=set()
+processName=None
+tag=None
 for l in f:
     if constructing.match(l):
         labels = re.match(constructing,l).groups()
         constructed.add(labels[0])
+        # print labels
+        continue
+    if fourpluses.match(l):
+        continue
     if module4space.match(l):
         labels=re.match(module4space,l).groups()
+        # print labels
         if len(labels) > 1:
             if not labels[1] == '':
                 moduleRelations[processName].append(labels[1])
-#    if module2space.match(l):
-#        values=re.match(module2space,l).groups()
-#        processName = values[1]
-#        moduleRelations[processName]=list()
-#        moduleConsumes[processName]=list()
+        continue
     if modules.match(l):
         values = re.match(modules,l).groups()
         processName = values[1]
         moduleRelations[processName]=list()
+        # print 'process %s modules' % processName
+        continue
     if consumes.match(l):
         values = re.match(consumes,l).groups()
         processName = values[1]
+        # print 'process %s consumes' % processName
         moduleConsumes[processName]=list()
-    if fourspace.match(l):
-        fields=re.match(fourspace,l).groups()
+        continue
+    if consume4space.match(l):
+        fields=re.match(consume4space,l).groups()
         consumedBy[fields[1]].append(processName)
         if not fields[1] == "@EmptyLabel@":
-            if fields[-1] == "HLT":
-                moduleConsumes[processName].append(fields[1]+"/HLT")
+            if fields[-1] == " '' 'HLT'":
+                consumed = fields[1]+"/HLT"
+                moduleConsumes[processName].append(consumed)
             else:
                 moduleConsumes[processName].append(fields[1])
+        continue
+    # print 'unmatched line "%s" ' % l.rstrip('\n')
 
 import networkx as nx
-C=nx.DiGraph(moduleRelations)
+C=nx.DiGraph(moduleConsumes)
 Q=nx.dfs_preorder_nodes(C,"RECOoutput")
-consumed=set(Q)
+
 
             
-with open('module-storage2get.json', 'w') as outfile:
+with open('module-consumes.json', 'w') as outfile:
    outfile.write(json.dumps(moduleConsumes, indent=4))
 
 with open('module-relations.json', 'w') as outfile:
@@ -76,9 +85,9 @@ with open('module-timings.json', 'r') as infile:
 
 nEvents="200"
 eventTimes = moduleTimings['RECOoutput']
+
 storageToWrite = list()
-mods=set(moduleConsumes['RECOoutput'])
-for mod in mods:
+for mod in moduleConsumes['RECOoutput']:
     storageToWrite.append({"label":mod, "product":""})
 
 
@@ -118,34 +127,36 @@ config = {
 }
 
 timed=set(moduleTimings.keys())
+
 HLTProds=["rawDataCollector", "TriggerResults/HLT", "hltGtStage2ObjectMap/HLT",  "hltTriggerSummaryAOD/HLT"]
 for s in HLTProds:
     constructed.add(s)
-    timed.add(s)
+#    timed.add(s)
 
 
 #add producers
 producers = config["process"]["producers"]
 
 
-for mod in consumed:
+for mod in sorted(Q):
    if not mod in constructed:
-       print "module with label %s not constructed" % mod
+       print "%s not constructed" % mod
        continue
    if not mod in timed:
-       print "module with label %s has no event times" % mod
+       print "%s has no event times" % mod
+       continue
    eventTimes = moduleTimings.get(mod,[0.0])
-   times=[0.0]
+   times=[0.0]*200
    if len(eventTimes)==200:
        times=eventTimes
-   else:
-       print 'module %s is consumed but has no event times' % mod
+   # else:
+   #     print '%s has no event times len' % mod
    toGet = list()
-   for d in list(set(moduleConsumes[mod])):
+   for d in list(moduleConsumes[mod]):
        if d not in constructed:
-           print "module label %s dependency label %s not constructed" % (mod,d)
-       else:
-           toGet.append({"label":d, "product":""})
+           # print "%s not constructed and is a dependency of %s" % (d,mod)
+           continue
+       toGet.append({"label":d, "product":""})
    c = { "@label" : mod,
      "@type" : "demo::EventTimesBusyWaitProducer",
      "threadType" : "ThreadSafeBetweenInstances",
@@ -155,7 +166,7 @@ for mod in consumed:
    producers.append(c)
 
 #add sources
-eventTimes = moduleTimings.get("source/HLT",[0.])
+eventTimes = moduleTimings.get("source/HLT", [0.0])
 r = { "@label": "rawDataCollector",
       "@type" : "demo::EventTimesBusyWaitProducer",
       "threadType" : "ThreadUnsafe",
@@ -165,19 +176,19 @@ r = { "@label": "rawDataCollector",
 t = { "@label": "TriggerResults/HLT",
       "@type" : "demo::EventTimesBusyWaitProducer",
       "threadType" : "ThreadUnsafe",
-       "eventTimes": [0.0]*200,
+       "eventTimes": [0.0],
        "toGet" : []
     }
 h = { "@label": "hltGtStage2ObjectMap/HLT",
       "@type" : "demo::EventTimesBusyWaitProducer",
       "threadType" : "ThreadUnsafe",
-       "eventTimes": [0.0]*200,
+       "eventTimes": [0.0],
        "toGet" : []
     }
 a = { "@label": "hltTriggerSummaryAOD/HLT",
       "@type" : "demo::EventTimesBusyWaitProducer",
       "threadType" : "ThreadUnsafe",
-       "eventTimes": [0.0]*200,
+       "eventTimes": [0.0],
        "toGet" : []
     }
 producers.append(r)
