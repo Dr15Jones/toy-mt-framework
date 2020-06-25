@@ -33,6 +33,7 @@ namespace demo {
     
   private:
     void implDoWork() override;
+    void implDoAcquire(WaitingTaskWithArenaHolder) override;
     FilterWrapper(const FilterWrapper&);
     std::shared_ptr<Filter> m_filter;
     bool m_keep;

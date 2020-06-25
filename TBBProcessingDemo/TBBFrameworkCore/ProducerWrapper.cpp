@@ -68,6 +68,11 @@ ProducerWrapper::implDoWork() {
 }
 
 void
+ProducerWrapper::implDoAcquire(WaitingTaskWithArenaHolder h) {
+  producer()->doAcquire(*event(), std::move(h));
+}
+
+void
 ProducerWrapper::doProduceAsync(WaitingTask* iCallTaskWhenDone)
 {
   doWorkAsync(iCallTaskWhenDone);

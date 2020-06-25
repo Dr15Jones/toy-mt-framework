@@ -11,6 +11,7 @@
 #include <atomic>
 #include "SerialTaskQueue.h"
 #include "WaitingTaskList.h"
+#include "WaitingTaskWithArenaHolder.h"
 
 namespace demo {
   class Module;
@@ -50,7 +51,9 @@ namespace demo {
   private:
     void prefetchAsync(WaitingTask* iPostPrefetchTask);
     void runModuleAfterAsyncPrefetch(std::exception_ptr);
+    void runModuleAcquireAfterAsyncPrefetch(std::exception_ptr);
     virtual void implDoWork() = 0;
+    virtual void implDoAcquire(WaitingTaskWithArenaHolder) = 0;
     Module* m_module;
     Event* m_event;
     WaitingTaskList m_waitingTasks;

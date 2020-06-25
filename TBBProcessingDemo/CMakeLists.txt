@@ -51,6 +51,7 @@ set(TEST_FILES
   ${CMAKE_SOURCE_DIR}/CommonTestModules/PassFilter.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/SleepingPassFilter.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/SleepingProducer.cpp
+  ${CMAKE_SOURCE_DIR}/CommonTestModules/SleepingWithAcquireProducer.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/ThreadSafeProducer.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/ThreadSafeWhichReadsProducer.cpp
   ${CMAKE_SOURCE_DIR}/CommonTestModules/ThreadSaferGetterFilter.cpp

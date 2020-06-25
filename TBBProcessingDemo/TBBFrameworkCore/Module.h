@@ -20,6 +20,11 @@ namespace demo {
    class GroupHolder;
    class ModuleWrapper;
    class WaitingTask;
+   class WaitingTaskWithArenaHolder;
+   namespace edm {
+     class Event;
+   }
+
    
    enum ThreadType {
      kThreadUnsafe,
@@ -47,6 +52,9 @@ namespace demo {
       
       unsigned int id() const { return m_moduleID;}
       void setID(unsigned int iID) {m_moduleID = iID;}
+
+      virtual bool hasAcquire() const {return false;}
+      void doAcquire(Event&, WaitingTaskWithArenaHolder);
    protected:
       Module(const std::string& iLabel, ThreadType iThreadType= kThreadUnsafe): 
       m_label(iLabel),
@@ -56,6 +64,8 @@ namespace demo {
    private:
       //only called by ModuleWrapper
       void prefetchAsync(const Event&, WaitingTask*);
+
+      virtual void acquire(const edm::Event&, WaitingTaskWithArenaHolder);
       
       std::string m_label;
       std::list<Getter> m_getters; //returns a pointer so need stable address

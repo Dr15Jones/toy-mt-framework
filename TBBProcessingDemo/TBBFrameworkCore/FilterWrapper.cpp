@@ -55,6 +55,11 @@ FilterWrapper::implDoWork()
   m_keep = filter()->doFilter(*event());
 }
 
+void
+FilterWrapper::implDoAcquire(WaitingTaskWithArenaHolder h) {
+  filter()->doAcquire(*event(), std::move(h));
+}
+
 const std::string&
 FilterWrapper::label() const
 {

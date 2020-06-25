@@ -30,6 +30,7 @@ namespace demo {
     unsigned int id() const {return m_producer->id();}
   private:
     void implDoWork() override;
+    void implDoAcquire(WaitingTaskWithArenaHolder) override;
     Producer* producer() const;
 
     ProducerWrapper& operator=(const ProducerWrapper&) = delete;

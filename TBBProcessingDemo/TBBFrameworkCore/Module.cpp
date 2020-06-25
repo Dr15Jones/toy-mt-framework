@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cassert>
 #include "WaitingTask.h"
+#include "WaitingTaskWithArenaHolder.h"
 #include "Module.h"
 #include "Getter.h"
 #include "Event.h"
@@ -35,6 +36,16 @@ Module::prefetchAsync(const Event& iEvent, WaitingTask* iTask)
      //if everything finishes before we leave this routine, we need to launch the task
      tbb::task::spawn(*iTask);
   }
+}
+
+void
+Module::doAcquire(Event& iEvent, WaitingTaskWithArenaHolder h) {
+   edm::Event event(&iEvent,threadType()!=kThreadUnsafe);
+  acquire(event, std::move(h));
+}
+
+void
+Module::acquire(const edm::Event&, WaitingTaskWithArenaHolder) {
 }
 
 const Getter* 
