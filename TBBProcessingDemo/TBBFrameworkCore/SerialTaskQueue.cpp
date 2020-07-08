@@ -43,18 +43,17 @@ SerialTaskQueue::pushTask(TaskBase* iTask) {
   }
 }
 
-tbb::task* 
+SerialTaskQueue::TaskBase* 
 SerialTaskQueue::pushAndGetNextTask(TaskBase* iTask) {
-  tbb::task* returnValue{0};
-  if likely(0!=iTask) {
+  TaskBase* returnValue{nullptr};
+  if likely(nullptr!=iTask) {
     m_tasks.push(iTask);
     returnValue = pickNextTask();
   }
   return returnValue;
 }
 
-
-tbb::task*
+SerialTaskQueue::TaskBase*
 SerialTaskQueue::finishedTask() {
   m_taskChosen.clear();
   return pickNextTask();

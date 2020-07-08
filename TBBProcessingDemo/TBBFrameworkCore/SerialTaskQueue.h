@@ -122,18 +122,6 @@ namespace demo {
       template<typename T>
       void pushAndWait(const T& iAction);
       
-      /// asynchronously pushes functor iAction into queue and finds next task to execute
-      /**
-       * This function is useful if you are accessing the SerialTaskQueue for the execute()
-       * method of a TBB task and want to efficiently schedule the next task from the queue.
-       * In that case you can take the return value and return it directly from your execute() method.
-       * The function will return immediately and not wait for iAction to run.
-       * \param[in] iAction Must be a functor that takes no arguments and return no values.
-       * \return Returns either the next task that the user must schedule with TBB or a nullptr.
-       */
-      template<typename T>
-      tbb::task* pushAndGetNextTaskToRun(const T& iAction);
-      
    private:
       SerialTaskQueue(const SerialTaskQueue&) = delete;
       const SerialTaskQueue& operator=(const SerialTaskQueue&) = delete;
@@ -144,7 +132,7 @@ namespace demo {
          TaskBase(): m_queue(0) {}
          
       protected:
-         tbb::task* finishedTask();
+         TaskBase* finishedTask();
       private:
          void setQueue(SerialTaskQueue* iQueue) { m_queue = iQueue;}
          
@@ -166,8 +154,8 @@ namespace demo {
       friend class TaskBase;
       
       void pushTask(TaskBase*);
-      tbb::task* pushAndGetNextTask(TaskBase*);
-      tbb::task* finishedTask();
+      TaskBase* pushAndGetNextTask(TaskBase*);
+      TaskBase* finishedTask();
       //returns nullptr if a task is already being processed
       TaskBase* pickNextTask();
       
@@ -196,15 +184,8 @@ namespace demo {
       pushAndWait(waitTask,pTask);
    }
    
-   template<typename T>
-   tbb::task* SerialTaskQueue::pushAndGetNextTaskToRun(const T& iAction) {
-      QueuedTask<T>* pTask{ new (tbb::task::allocate_root()) QueuedTask<T>{iAction} };
-      pTask->setQueue(this);
-      return pushAndGetNextTask(pTask);
-   }
-   
    inline
-   tbb::task*
+   SerialTaskQueue::TaskBase*
    SerialTaskQueue::TaskBase::finishedTask() {return m_queue->finishedTask();}
    
    template <typename T>
