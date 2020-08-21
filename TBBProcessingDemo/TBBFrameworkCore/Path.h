@@ -14,6 +14,7 @@
 #include <atomic>
 #include "FilterOnPathWrapper.h"
 #include "WaitingTaskList.h"
+#include "WaitingTaskHolder.h"
 
 namespace demo {
   class Event;
@@ -23,7 +24,7 @@ namespace demo {
   public:
     Path(): m_fatalJobErrorOccurredPtr(nullptr),m_callback() {}
     
-    void runAsync(WaitingTask* iCallback); 
+    void runAsync(WaitingTaskHolder iCallback); 
     
     void reset();
     
@@ -46,6 +47,7 @@ namespace demo {
     
     std::vector<FilterOnPathWrapper> m_filters;
     std::atomic<bool>* m_fatalJobErrorOccurredPtr;
+    tbb::task_group* m_group=nullptr;
     WaitingTaskList m_callback;
   };
   

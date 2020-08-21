@@ -37,9 +37,9 @@ FilterOnPathWrapper::checkResultsOfRunFilter() {
 }
 
 void
-FilterOnPathWrapper::filterAsync(WaitingTask* iTask)
+FilterOnPathWrapper::filterAsync(WaitingTaskHolder iTask)
 {
-  m_filter->doFilterAsync(iTask);
+  m_filter->doFilterAsync(std::move(iTask));
 }
 
 

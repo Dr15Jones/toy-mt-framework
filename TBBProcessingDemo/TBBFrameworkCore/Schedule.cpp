@@ -51,8 +51,8 @@ Schedule::processAsync(WaitingTaskHolder iCallback) {
   reset();
 
   if(!m_paths.empty()) {
-
-    auto allPathsDone = make_waiting_task(tbb::task::allocate_root(),
+    auto& group = iCallback.group();
+    auto allPathsDone = make_waiting_task(
                                           [this, h=std::move(iCallback)](std::exception_ptr* const iExcept) mutable
                                           {
                                             if(iExcept) {
@@ -62,10 +62,10 @@ Schedule::processAsync(WaitingTaskHolder iCallback) {
                                               h.doneWaiting(std::exception_ptr{});
                                             }
                                           });
-    WaitingTaskHolder tmp(allPathsDone);
+    WaitingTaskHolder tmp(group, allPathsDone);
      
     for(auto& path : m_paths) {
-      path->runAsync( allPathsDone );
+      path->runAsync( tmp );
     }
   } else {
     iCallback.doneWaiting(std::exception_ptr{});

@@ -19,6 +19,7 @@
 // system include files
 #include <cassert>
 #include <memory>
+#include "tbb/task_group.h"
 #include "tbb/task_arena.h"
 
 // user include files
@@ -32,9 +33,11 @@ namespace demo {
     
   public:
     WaitingTaskWithArenaHolder():
+    m_group(nullptr),
     m_task(nullptr) {}
     
-    explicit WaitingTaskWithArenaHolder(WaitingTask* iTask):
+    explicit WaitingTaskWithArenaHolder(tbb::task_group& iGroup, WaitingTask* iTask):
+    m_group(&iGroup),
     m_task(iTask),
     m_arena(std::make_shared<tbb::task_arena>(tbb::task_arena::attach()))
     { if(m_task) { m_task->increment_ref_count(); } }
@@ -45,17 +48,20 @@ namespace demo {
     }
 
     WaitingTaskWithArenaHolder(const WaitingTaskWithArenaHolder& iHolder) :
+    m_group(iHolder.m_group),
     m_task(iHolder.m_task), m_arena(iHolder.m_arena) {
       m_task->increment_ref_count();
     }
 
     WaitingTaskWithArenaHolder(WaitingTaskWithArenaHolder&& iOther) :
+    m_group(iOther.m_group),
     m_task(iOther.m_task), m_arena(std::move(iOther.m_arena)) {
       iOther.m_task = nullptr;
     }
     
     WaitingTaskWithArenaHolder& operator=(const WaitingTaskWithArenaHolder& iRHS) {
       WaitingTaskWithArenaHolder tmp(iRHS);
+      std::swap(m_group, tmp.m_group);
       std::swap(m_task, tmp.m_task);
       std::swap(m_arena, tmp.m_arena);
       return *this;
@@ -63,6 +69,7 @@ namespace demo {
 
     WaitingTaskWithArenaHolder& operator=(WaitingTaskWithArenaHolder&& iRHS) {
       WaitingTaskWithArenaHolder tmp(std::move(iRHS));
+      std::swap(m_group, tmp.m_group);
       std::swap(m_task, tmp.m_task);
       std::swap(m_arena, tmp.m_arena);
       return *this;
@@ -99,14 +106,19 @@ namespace demo {
       if(0==task->decrement_ref_count()){
 	// The enqueue call will cause a worker thread to be created in
 	// the arena if there is not one already.
-	m_arena->enqueue([task = task]() { tbb::task::spawn(*task); });
+	m_arena->enqueue([task = task, group=m_group]() { 
+	    group->run([task]() {
+		std::unique_ptr<TaskBase> holder(task);
+		task->execute();
+	      });
+	  });
       }
-      m_task = nullptr;
     }
     
   private:
     
     // ---------- member data --------------------------------
+    tbb::task_group* m_group;
     WaitingTask* m_task;
     std::shared_ptr<tbb::task_arena> m_arena;
   };

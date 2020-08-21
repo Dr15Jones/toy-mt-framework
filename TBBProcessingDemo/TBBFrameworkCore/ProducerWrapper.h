@@ -25,7 +25,7 @@ namespace demo {
     ProducerWrapper(const ProducerWrapper&);
     
     ///Pass task to be called when data has been produced
-    void doProduceAsync(WaitingTask* iCallTaskWhenDone);
+    void doProduceAsync(WaitingTaskHolder iCallTaskWhenDone);
 
     unsigned int id() const {return m_producer->id();}
   private:

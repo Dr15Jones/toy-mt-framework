@@ -12,10 +12,10 @@
 #include <atomic>
 #include <exception>
 #include <memory>
-#include "tbb/task.h"
+#include "TaskBase.h"
 
 namespace demo {
-  class WaitingTask : public tbb::task {
+  class WaitingTask : public TaskBase {
    public:
     WaitingTask() : m_ptr{nullptr} {}
     ~WaitingTask() override {
@@ -45,19 +45,12 @@ namespace demo {
   public:
      EmptyWaitingTask() = default;
      
-     tbb::task* execute() override { return nullptr;}
+     void execute() override { return;}
   };
 
-  namespace waitingtask {
-    struct TaskDestroyer {
-      void operator()(tbb::task* iTask) const {
-        tbb::task::destroy(*iTask);
-      }
-    };
-  }
   ///Create an EmptyWaitingTask which will properly be destroyed
   inline auto make_empty_waiting_task() {
-    return std::unique_ptr<EmptyWaitingTask, waitingtask::TaskDestroyer>( new (tbb::task::allocate_root()) EmptyWaitingTask{});
+    return std::unique_ptr<EmptyWaitingTask>( new EmptyWaitingTask{});
   }
 
 
@@ -66,18 +59,18 @@ namespace demo {
   public:
     explicit FunctorWaitingTask( F f): func_(std::move(f)) {}
     
-    task* execute() override {
+    void execute() override {
       func_(exceptionPtr());
-      return nullptr;
+      return;
     };
     
   private:
     F func_;
   };
   
-  template< typename ALLOC, typename F>
-    FunctorWaitingTask<F>* make_waiting_task( ALLOC&& iAlloc, F f) {
-    return new (iAlloc) FunctorWaitingTask<F>(std::move(f));
+  template<typename F>
+    FunctorWaitingTask<F>* make_waiting_task(F f) {
+    return new FunctorWaitingTask<F>(std::move(f));
   }
 }
 

@@ -64,6 +64,8 @@ Event::get(const std::string& iModule,
    LookupMap::const_iterator it = m_lookupMap.find(LabelAndProduct(iModule.c_str(),iProduct.c_str()));
    assert(it != m_lookupMap.end());
    if(!it->second.wasCached()) {
+     assert(false);
+     /*
       std::shared_ptr<EmptyWaitingTask> doneTask(new (tbb::task::allocate_root()) EmptyWaitingTask(), [](EmptyWaitingTask* t) {tbb::task::destroy(*t);});
       //Ref count needs to be 1 since WaitList will increment and decrement it again
       // doneTask->wait_for_all() waits for the task ref count to drop back to 1
@@ -76,6 +78,7 @@ Event::get(const std::string& iModule,
          std::rethrow_exception(*doneTask->exceptionPtr());
       }
       //tbb::task::destroy(*doneTask);
+      */
    }
    return it->second.value();
 }
@@ -102,7 +105,7 @@ Event::get(const Getter* iGetter) const
 
 //asynchronously get data
 void
-Event::getAsyncImpl(Getter* iGetter, WaitingTask* iTaskDoneWithGet) const 
+Event::getAsyncImpl(Getter* iGetter, WaitingTaskHolder iTaskDoneWithGet) const 
 {
    //PROBLEM??: Is map find thread safe?  It looks like if I call find via two different threads
    // that I sometimes get the answer for the first thread when I'm running the second thread
@@ -119,20 +122,19 @@ Event::getAsyncImpl(Getter* iGetter, WaitingTask* iTaskDoneWithGet) const
    //printf("     doProduceAsync: %s\n",iGetter->label().c_str());
    //NOTE: this will not rerun the producer if it has already been run AND it will
    // properly run iTaskDoneWithGet in both cases (producer run or not run yet)
-   found->producer()->doProduceAsync(iTaskDoneWithGet);
+   found->producer()->doProduceAsync(std::move(iTaskDoneWithGet));
 }
 
-void Event::mustWaitFor(unsigned int iModuleID, WaitingTask* iTask) const {
+void Event::mustWaitFor(unsigned int iModuleID, WaitingTaskHolder iTask) const {
    //std::cout <<"mustWaitFor "<<iModuleID<<" size "<<m_producers.size()<<std::endl;
    assert(iModuleID < m_producers.size());
    m_producers[iModuleID]->doProduceAsync(iTask);
 }
 
-
 void 
-Event::getAsync(Getter* iGetter, WaitingTask* iTaskDoneWithGet) const
+Event::getAsync(Getter* iGetter, WaitingTaskHolder iTaskDoneWithGet) const
 {
-  getAsyncImpl(iGetter, iTaskDoneWithGet);
+  getAsyncImpl(iGetter, std::move(iTaskDoneWithGet));
 }
 
 void 
@@ -183,13 +185,15 @@ namespace demo {
       int Event::get(const std::string& iModule, 
                      const std::string& iProduct) const {
          if(!m_isThreadSafe) {
+	   assert(false);
             //the calling module halted the non-thread safe queue
             // and we must restart it in case this get requires
             // running another non-thread-safe module
-            s_non_thread_safe_queue->resume();
+            /*s_non_thread_safe_queue->resume();*/
             //dispatch_resume(s_non_thread_safe_queue);
          }
          int returnValue = m_event->get(iModule,iProduct);
+	 /*
          if(!m_isThreadSafe) {
            //we must acquire the 'lock' on the non-thread-safe queue again
            tbb::empty_task* doneTask = new (tbb::task::allocate_root()) tbb::empty_task();
@@ -204,7 +208,7 @@ namespace demo {
            });
            doneTask->wait_for_all();
            tbb::task::destroy(*doneTask);
-         }
+	 } */
          return returnValue;
       }
       
@@ -214,8 +218,8 @@ namespace demo {
      
       //asynchronously get data. The group will be incremented and will not be 
       // decremented until the attempt to get the data is finished
-      void Event::getAsync(Getter* iGetter, WaitingTask* iTask) const {
-         m_event->getAsync(iGetter, iTask);
+      void Event::getAsync(Getter* iGetter, WaitingTaskHolder iTask) const {
+ 	m_event->getAsync(iGetter, std::move(iTask));
       }      
    }
 }

@@ -11,6 +11,7 @@
 #include <atomic>
 #include "SerialTaskQueue.h"
 #include "WaitingTaskList.h"
+#include "WaitingTaskHolder.h"
 #include "WaitingTaskWithArenaHolder.h"
 
 namespace demo {
@@ -37,7 +38,7 @@ namespace demo {
     }
 
 
-    void doWorkAsync(WaitingTask*);
+    void doWorkAsync(WaitingTaskHolder);
 
     SerialTaskQueue* runQueue() const {
       return m_runQueue.get();
@@ -49,9 +50,9 @@ namespace demo {
     ModuleWrapper& operator=(const ModuleWrapper&);
     
   private:
-    void prefetchAsync(WaitingTask* iPostPrefetchTask);
+    void prefetchAsync(WaitingTaskHolder iPostPrefetchTask);
     void runModuleAfterAsyncPrefetch(std::exception_ptr);
-    void runModuleAcquireAfterAsyncPrefetch(std::exception_ptr);
+    void runModuleAcquireAfterAsyncPrefetch(tbb::task_group* iGroup, std::exception_ptr);
     virtual void implDoWork() = 0;
     virtual void implDoAcquire(WaitingTaskWithArenaHolder) = 0;
     Module* m_module;

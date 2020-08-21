@@ -55,7 +55,7 @@
 // system include files
 #include <atomic>
 
-#include "tbb/task.h"
+#include "tbb/task_group.h"
 #include "tbb/concurrent_queue.h"
 
 // user include files
@@ -66,10 +66,11 @@ namespace demo {
    {
    public:
       SerialTaskQueue():
-      m_taskChosen{ATOMIC_FLAG_INIT},
+      m_taskChosen{false},
       m_pauseCount{0}
       {  }
-      
+     
+      ~SerialTaskQueue();
       // ---------- const member functions ---------------------
       /// Checks to see if the queue has been paused.
       /**\return true if the queue is paused
@@ -109,7 +110,7 @@ namespace demo {
        * \param[in] iAction Must be a functor that takes no arguments and return no values.
        */
       template<typename T>
-      void push(const T& iAction);
+      void push(tbb::task_group& iGroup,const T& iAction);
       
       /// synchronously pushes functor iAction into queue
       /**
@@ -119,36 +120,40 @@ namespace demo {
        * In that way the core is not idled while waiting.
        * \param[in] iAction Must be a functor that takes no arguments and return no values.
        */
-      template<typename T>
-      void pushAndWait(const T& iAction);
+      //template<typename T>
+      //void pushAndWait(const T& iAction);
       
    private:
       SerialTaskQueue(const SerialTaskQueue&) = delete;
       const SerialTaskQueue& operator=(const SerialTaskQueue&) = delete;
       
       /** Base class for all tasks held by the SerialTaskQueue */
-      class TaskBase : public tbb::task {
+      class TaskBase {
+       
          friend class SerialTaskQueue;
-         TaskBase(): m_queue(0) {}
-         
+
+	 tbb::task_group* group() { return m_group;}
+	 virtual void execute() = 0 ;
+      public:
+	 virtual ~TaskBase() = default;
       protected:
-         TaskBase* finishedTask();
+	 explicit TaskBase(tbb::task_group* iGroup) : m_group(iGroup)  {}
+
       private:
-         void setQueue(SerialTaskQueue* iQueue) { m_queue = iQueue;}
-         
-         SerialTaskQueue* m_queue;
+	 tbb::task_group* m_group;
       };
-      
+         
       template< typename T>
       class QueuedTask : public TaskBase {
       public:
-         QueuedTask( const T& iAction):
-         m_action(iAction) {}
+      QueuedTask( tbb::task_group& iGroup, const T& iAction):
+ 	TaskBase(&iGroup),
+	  m_action(iAction) {}
          
       private:
-         tbb::task* execute() override final;
-         
-         T m_action;
+	void execute() final;
+        
+	T m_action;
       };
       
       friend class TaskBase;
@@ -159,42 +164,26 @@ namespace demo {
       //returns nullptr if a task is already being processed
       TaskBase* pickNextTask();
       
-      void pushAndWait(tbb::empty_task* iWait,TaskBase*);
-      
+      void spawn(TaskBase&);
       
       // ---------- member data --------------------------------
       tbb::concurrent_queue<TaskBase*> m_tasks;
-      std::atomic_flag m_taskChosen;
+      std::atomic<bool> m_taskChosen;
       std::atomic<unsigned long> m_pauseCount;
    };
    
    template<typename T>
-   void SerialTaskQueue::push(const T& iAction) {
-      QueuedTask<T>* pTask{ new (tbb::task::allocate_root()) QueuedTask<T>{iAction} };
-      pTask->setQueue(this);
-      pushTask(pTask);
+     void SerialTaskQueue::push(tbb::task_group& iGroup, const T& iAction) {
+     QueuedTask<T>* pTask{ new QueuedTask<T>{iGroup, iAction} };
+     pushTask(pTask);
    }
-   
-   template<typename T>
-   void SerialTaskQueue::pushAndWait(const T& iAction) {
-      tbb::empty_task* waitTask = new (tbb::task::allocate_root()) tbb::empty_task;
-      waitTask->set_ref_count(2);
-      QueuedTask<T>* pTask{ new (waitTask->allocate_child()) QueuedTask<T>{iAction} };
-      pTask->setQueue(this);
-      pushAndWait(waitTask,pTask);
-   }
-   
-   inline
-   SerialTaskQueue::TaskBase*
-   SerialTaskQueue::TaskBase::finishedTask() {return m_queue->finishedTask();}
    
    template <typename T>
-   tbb::task*
+   void
    SerialTaskQueue::QueuedTask<T>::execute() {
       try {
          this->m_action();
       } catch(...) {}
-      return this->finishedTask();
    }
    
 }

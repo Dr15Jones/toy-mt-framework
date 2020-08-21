@@ -20,6 +20,7 @@ namespace demo {
    class GroupHolder;
    class ModuleWrapper;
    class WaitingTask;
+   class WaitingTaskHolder;
    class WaitingTaskWithArenaHolder;
    namespace edm {
      class Event;
@@ -63,7 +64,7 @@ namespace demo {
       void registerMightGet(const std::string&, const std::string&);
    private:
       //only called by ModuleWrapper
-      void prefetchAsync(const Event&, WaitingTask*);
+      void prefetchAsync(const Event&, WaitingTaskHolder);
 
       virtual void acquire(const edm::Event&, WaitingTaskWithArenaHolder);
       

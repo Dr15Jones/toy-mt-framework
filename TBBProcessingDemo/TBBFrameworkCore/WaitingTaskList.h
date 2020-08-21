@@ -12,11 +12,12 @@
 #include <atomic>
 #include <exception>
 #include "WaitingTask.h"
-
+#include "WaitingTaskHolder.h"
 
 namespace demo {
    struct WaitNode {
       WaitingTask* m_task;
+      tbb::task_group* m_group;
       std::atomic<WaitNode*> m_next;
       bool m_fromCache;
       
@@ -46,7 +47,7 @@ namespace demo {
       ~WaitingTaskList() {
          delete [] m_nodeCache;
       }
-      void add(WaitingTask*);
+      void add(WaitingTaskHolder);
 
       //Not thread safe
       // If the task we were waiting on threw an exception
@@ -60,7 +61,7 @@ namespace demo {
       //safe to call from multiple threads
       void announce();
 
-      WaitNode* createNode(WaitingTask* iTask);
+      WaitNode* createNode(tbb::task_group& iGroup, WaitingTask* iTask);
       std::atomic<WaitNode*> m_head;
       WaitNode* m_nodeCache;
       std::exception_ptr m_exceptionPtr; //guarded by m_waiting

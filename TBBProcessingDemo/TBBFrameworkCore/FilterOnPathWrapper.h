@@ -14,14 +14,14 @@
 namespace demo {
   class FilterWrapper;
   class Path;
-  class WaitingTask;
+  class WaitingTaskHolder;
 
   class FilterOnPathWrapper  {
   public:
     FilterOnPathWrapper(FilterWrapper* iFilter,
                         size_t iIndex);
     
-    void filterAsync(WaitingTask*);
+    void filterAsync(WaitingTaskHolder);
     const std::string& label() const;
 
     FilterWrapper* filter() const;

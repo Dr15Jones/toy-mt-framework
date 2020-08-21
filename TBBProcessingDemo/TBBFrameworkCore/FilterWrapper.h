@@ -27,7 +27,7 @@ namespace demo {
 
     bool shouldKeep() const { return m_keep;}
     
-    void doFilterAsync(WaitingTask*);
+    void doFilterAsync(WaitingTaskHolder);
     
     Filter* filter() const;
     

@@ -16,9 +16,10 @@
 
 using namespace demo;
 
-void Path::runAsync(WaitingTask* iCallback) {
+void Path::runAsync(WaitingTaskHolder iCallback) {
+  m_group = &iCallback.group();
   m_callback.reset();
-  m_callback.add(iCallback);
+  m_callback.add(std::move(iCallback));
   if(!m_filters.empty()) {
     runFilterAsync(0);
   } else {
@@ -47,12 +48,11 @@ void Path::runFilterAsync(size_t iIndex) {
     m_callback.doneWaiting(std::exception_ptr{});
     return;
   }
-  auto nextTask = make_waiting_task(tbb::task::allocate_root(),
-                                    [this, iIndex](std::exception_ptr const* iPtr) 
+  auto nextTask = make_waiting_task([this, iIndex](std::exception_ptr const* iPtr) 
   {
     this->filterFinished(iPtr, iIndex);
   });
-  m_filters[iIndex].filterAsync(nextTask);
+  m_filters[iIndex].filterAsync(WaitingTaskHolder(*m_group,nextTask));
 }
   
 void Path::reset() {

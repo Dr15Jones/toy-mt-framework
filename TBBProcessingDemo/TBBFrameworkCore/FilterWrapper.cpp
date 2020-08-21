@@ -38,8 +38,8 @@ m_keep(false)
 }
 
 void
-FilterWrapper::doFilterAsync(WaitingTask* iTask) {
-  doWorkAsync(iTask);
+FilterWrapper::doFilterAsync(WaitingTaskHolder iTask) {
+  doWorkAsync(std::move(iTask));
 }
 
 void

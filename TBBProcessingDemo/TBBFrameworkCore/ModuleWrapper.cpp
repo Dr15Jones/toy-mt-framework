@@ -11,7 +11,7 @@
 #include <cassert>
 
 #include "ModuleWrapper.h"
-#include "WaitingTask.h"
+#include "WaitingTaskHolder.h"
 #include "Module.h"
 #include "Queues.h"
 #include "Event.h"
@@ -77,14 +77,16 @@ ModuleWrapper::~ModuleWrapper()
 }
 
 void
-ModuleWrapper::doWorkAsync(WaitingTask* iTask) {
-  m_waitingTasks.add(iTask);
+ModuleWrapper::doWorkAsync(WaitingTaskHolder iTask) {
+  auto* group = &iTask.group();
+  m_waitingTasks.add(std::move(iTask));
 
   bool expected = false;
   if(m_workStarted.compare_exchange_strong(expected,true) ) {
     module()->prefetchAsync(*m_event, 
-                            make_waiting_task(tbb::task::allocate_root(),
-                                              [this](std::exception_ptr const* iPtr)
+			    WaitingTaskHolder(*group,
+			     make_waiting_task(
+                                              [this,group](std::exception_ptr const* iPtr)
       {
         std::exception_ptr ptr;
         if(iPtr) {
@@ -92,44 +94,42 @@ ModuleWrapper::doWorkAsync(WaitingTask* iTask) {
         }
 	if(module()->hasAcquire()) {
 	  if(runQueue()) {
-	    runQueue()->push([this,ptr]() {
-		runModuleAcquireAfterAsyncPrefetch(ptr);
+	    runQueue()->push(*group, [this,ptr,group]() {
+		runModuleAcquireAfterAsyncPrefetch(group,ptr);
 	      });
 	  } else {
-	    runModuleAcquireAfterAsyncPrefetch(ptr);
+	    runModuleAcquireAfterAsyncPrefetch(group,ptr);
 	  }
 	} else {
 	  if(runQueue()) {
-	    runQueue()->push([this,ptr]() {
+	    runQueue()->push(*group, [this,ptr]() {
 		runModuleAfterAsyncPrefetch(ptr);
 	      });
 	  } else {
 	    runModuleAfterAsyncPrefetch(ptr);
 	  }
 	}
-      }) 
+      })
+					      ) 
     );
   }
 }
 
 void 
-ModuleWrapper::prefetchAsync(WaitingTask* iPrefetchDoneTask)
+ModuleWrapper::prefetchAsync(WaitingTaskHolder iPrefetchDoneTask)
 {
   if(module()->hasPrefetchItems()) {
     
-      module()->prefetchAsync(*m_event, iPrefetchDoneTask); 
-  } else {
-      tbb::task::spawn(*iPrefetchDoneTask);
+    module()->prefetchAsync(*m_event, std::move(iPrefetchDoneTask)); 
   }
 }
 
 void
-ModuleWrapper::runModuleAcquireAfterAsyncPrefetch(std::exception_ptr iPtr) {
+ModuleWrapper::runModuleAcquireAfterAsyncPrefetch(tbb::task_group* iGroup, std::exception_ptr iPtr) {
   if(not iPtr) {
     try {
-      WaitingTaskWithArenaHolder h(
-				   make_waiting_task(tbb::task::allocate_root(),
-						     [this](std::exception_ptr const* iPtr) 
+      WaitingTaskWithArenaHolder h(*iGroup,
+				   make_waiting_task([this,iGroup](std::exception_ptr const* iPtr) 
        {
 	 std::exception_ptr ptr;
 	 if(iPtr) {
@@ -137,7 +137,7 @@ ModuleWrapper::runModuleAcquireAfterAsyncPrefetch(std::exception_ptr iPtr) {
 	 }
 	 
 	 if(runQueue()) {
-	   runQueue()->push([this,ptr]() {
+	   runQueue()->push(*iGroup, [this,ptr]() {
 	       runModuleAfterAsyncPrefetch(ptr);
 	     });
 	 } else {

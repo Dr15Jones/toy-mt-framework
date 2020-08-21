@@ -23,12 +23,45 @@ using namespace demo;
 //
 // member functions
 //
+SerialTaskQueue::~SerialTaskQueue() {
+  //be certain all tasks have completed
+  bool isEmpty = m_tasks.empty();
+  bool isTaskChosen = m_taskChosen;
+  if ((not isEmpty and not isPaused()) or isTaskChosen) {
+    tbb::task_group g;
+    std::atomic<bool> done = false;
+    push(g, [&done]() { 
+	done = true;
+	return; });
+    do {
+      g.wait();
+    } while(not done.load());
+  }
+}
+
+void SerialTaskQueue::spawn(TaskBase& iTask) {
+  auto pTask = &iTask;
+  iTask.group()->run([pTask, this]() {
+      TaskBase* t = pTask;
+      auto g = pTask->group();
+      do {
+	t->execute();
+	delete t;
+	t = finishedTask();
+	if(t and t->group() != g) {
+	  spawn(*t);
+	  t=nullptr;
+	}
+      } while(t!=nullptr);
+    });
+}
+
 bool
 SerialTaskQueue::resume() {
   if(0==--m_pauseCount) {
-    tbb::task* t = pickNextTask();
+    auto* t = pickNextTask();
     if(0 != t) {
-      tbb::task::spawn(*t);
+      spawn(*t);
     }
     return true;
   }
@@ -37,9 +70,9 @@ SerialTaskQueue::resume() {
 
 void
 SerialTaskQueue::pushTask(TaskBase* iTask) {
-  tbb::task* t = pushAndGetNextTask(iTask);
+  auto* t = pushAndGetNextTask(iTask);
   if(0!=t) {
-    tbb::task::spawn(*t);      
+    spawn(*t);      
   }
 }
 
@@ -55,50 +88,34 @@ SerialTaskQueue::pushAndGetNextTask(TaskBase* iTask) {
 
 SerialTaskQueue::TaskBase*
 SerialTaskQueue::finishedTask() {
-  m_taskChosen.clear();
+  m_taskChosen.store(false);
   return pickNextTask();
 }
 
 SerialTaskQueue::TaskBase*
 SerialTaskQueue::pickNextTask() {
-  
-  if likely(0 == m_pauseCount and not m_taskChosen.test_and_set()) {
+  bool expected = false;
+  if likely(0 == m_pauseCount and not m_taskChosen.compare_exchange_strong(expected,true)) {
     TaskBase* t=0;
     if likely(m_tasks.try_pop(t)) {
       return t;
     }
     //no task was actually pulled
-    m_taskChosen.clear();
+    m_taskChosen.store(false);
     
     //was a new entry added after we called 'try_pop' but before we did the clear?
-    if(not m_tasks.empty() and not m_taskChosen.test_and_set()) {
+    expected = false;
+    if(not m_tasks.empty() and not m_taskChosen.compare_exchange_strong(expected,true)) {
       TaskBase* t=0;
       if(m_tasks.try_pop(t)) {
         return t;
       }
       //no task was still pulled since a different thread beat us to it
-      m_taskChosen.clear();
+      m_taskChosen.store(false);
       
     }
   }
   return 0;
-}
-
-void SerialTaskQueue::pushAndWait(tbb::empty_task* iWait, TaskBase* iTask) {
-   auto nextTask = pushAndGetNextTask(iTask);
-   if likely(nullptr != nextTask) {
-     if likely(nextTask == iTask) {
-        //spawn and wait for all requires the task to have its parent set
-        iWait->spawn_and_wait_for_all(*nextTask);
-     } else {
-        tbb::task::spawn(*nextTask);
-        iWait->wait_for_all();
-     }
-   } else {
-     //a task must already be running in this queue
-     iWait->wait_for_all();              
-   }
-   tbb::task::destroy(*iWait);
 }
 
 

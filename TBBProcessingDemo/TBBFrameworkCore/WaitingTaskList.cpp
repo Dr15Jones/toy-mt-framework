@@ -37,7 +37,7 @@ WaitingTaskList::reset()
 }
 
 WaitNode* 
-WaitingTaskList::createNode(WaitingTask* iTask)
+WaitingTaskList::createNode(tbb::task_group& iGroup, WaitingTask* iTask)
 {
    unsigned int index = m_lastAssignedCacheIndex++;
    
@@ -48,6 +48,7 @@ WaitingTaskList::createNode(WaitingTask* iTask)
       returnValue = new WaitNode;
       returnValue->m_fromCache=false;
    }
+   returnValue->m_group = &iGroup;
    returnValue->m_task = iTask;
    returnValue->m_next = returnValue;
    
@@ -56,23 +57,21 @@ WaitingTaskList::createNode(WaitingTask* iTask)
 
 
 void
-WaitingTaskList::add(WaitingTask* iTask) {
-   iTask->increment_ref_count();
+WaitingTaskList::add(WaitingTaskHolder iTask) {
    if(!m_waiting) {
       if(m_exceptionPtr) {
-         iTask->dependentTaskFailed(m_exceptionPtr);
-      }
-      if(0==iTask->decrement_ref_count()) {
-         tbb::task::spawn(*iTask);
+         iTask.doneWaiting(m_exceptionPtr);
       }
    } else {
-      WaitNode* newHead = createNode(iTask);
+      auto& group = iTask.group();
+      auto task = iTask.release_no_decrement();
+      WaitNode* newHead = createNode(group, task);
       WaitNode* oldHead = m_head.exchange(newHead);
       if(oldHead) {
         newHead->setNextNode(oldHead);
         //NOTE: even if 'm_waiting' changed, we don't
         // have to recheck since we beat 'announce()' in
-        // the ordering of 'm_head.exchange' call so iTask
+        // the ordering of 'm_head.exchange' call so task
         // is guaranteed to be in the link list
       } else {
         newHead->setNextNode(0);
@@ -110,7 +109,10 @@ WaitingTaskList::announce()
          t->dependentTaskFailed(m_exceptionPtr);
       }
       if(0==t->decrement_ref_count()){
-         tbb::task::spawn(*t);
+	n->m_group->run([t] {
+	    std::unique_ptr<TaskBase> holder(t);
+	    t->execute();
+	  });
       }
       if(!n->m_fromCache ) {
          delete n;

@@ -191,7 +191,8 @@ void EventProcessor::handleNextEventAsync(WaitingTaskHolder iHolder,
   schedule.event()->reset();
 
   if(m_source->setEventInfo(*(schedule.event()))) {
-    auto recursiveTask = make_waiting_task( tbb::task::allocate_root(),
+    auto& group = iHolder.group();
+    auto recursiveTask = make_waiting_task(
                           [this, h = std::move(iHolder), iEventIndex](std::exception_ptr const* iPtr) mutable {
         if(iPtr) {
           h.doneWaiting(*iPtr);
@@ -199,7 +200,7 @@ void EventProcessor::handleNextEventAsync(WaitingTaskHolder iHolder,
           handleNextEventAsync(std::move(h), iEventIndex);
         }
       });
-    schedule.processAsync(WaitingTaskHolder{recursiveTask});
+    schedule.processAsync(WaitingTaskHolder{group, recursiveTask});
   }
 }
 
@@ -210,8 +211,9 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
 
   auto eventLoopWaitTask = make_empty_waiting_task();
   eventLoopWaitTask->increment_ref_count();
+  tbb::task_group waitGroup;
   {
-    WaitingTaskHolder h{ eventLoopWaitTask.get() };
+    WaitingTaskHolder h{ waitGroup, eventLoopWaitTask.get() };
     for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
       Schedule* scheduleTemp = m_schedules[0]->clone();
       m_schedules.emplace_back(scheduleTemp);
@@ -220,7 +222,7 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
     handleNextEventAsync(h,0);
   }
 
-  eventLoopWaitTask->wait_for_all();
+  waitGroup.wait();
 
   if(eventLoopWaitTask->exceptionPtr()) {
     std::rethrow_exception(*eventLoopWaitTask->exceptionPtr());
