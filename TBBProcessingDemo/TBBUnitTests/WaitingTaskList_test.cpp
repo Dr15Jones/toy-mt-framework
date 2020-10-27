@@ -13,9 +13,10 @@
 #include <memory>
 #include <atomic>
 #include <thread>
-#include "tbb/task.h"
+#include "tbb/task_group.h"
 #include "WaitingTaskList.h"
 #include "WaitingTask.h"
+#include "WaitingTaskHolder.h"
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)
 #define CXX_THREAD_AVAILABLE
@@ -39,23 +40,25 @@ public:
 namespace  {
   class TestCalledTask : public demo::WaitingTask {
    public:
-      TestCalledTask(std::atomic<bool>& iCalled): m_called(iCalled) {}
+      TestCalledTask(std::atomic<bool>& iCalled, std::atomic<int>& iCount): 
+	m_called(iCalled),
+	m_count(iCount){++m_count;}
 
-      tbb::task* execute() {
+      void execute() override {
          m_called = true;
-         return nullptr;
+	 --m_count;
       }
       
    private:
       std::atomic<bool>& m_called;
+      std::atomic<int>& m_count;
    };
    
   class TestValueSetTask : public demo::WaitingTask {
    public:
       TestValueSetTask(std::atomic<bool>& iValue): m_value(iValue) {}
-         tbb::task* execute() {
+         void execute() override {
             CPPUNIT_ASSERT(m_value);
-            return nullptr;
          }
 
       private:
@@ -67,23 +70,22 @@ namespace  {
 void WaitingTaskList_test::addThenDone()
 {
    std::atomic<bool> called{false};
-   
+   std::atomic<int> count{0};
+
    demo::WaitingTaskList waitList;
    {
-      std::shared_ptr<tbb::task> waitTask{new (tbb::task::allocate_root()) tbb::empty_task{},
-                                            [](tbb::task* iTask){tbb::task::destroy(*iTask);} };
-      waitTask->set_ref_count(2);
-      //NOTE: allocate_child does NOT increment the ref_count of waitTask!
-      auto t = new (waitTask->allocate_child()) TestCalledTask{called};
+      tbb::task_group group;
+      auto t = new TestCalledTask{called,count};
    
-      waitList.add(t);
+      waitList.add(demo::WaitingTaskHolder(group,t));
 
       usleep(10);
       __sync_synchronize();
       CPPUNIT_ASSERT(false==called);
    
       waitList.doneWaiting(std::exception_ptr{});
-      waitTask->wait_for_all();
+
+      group.wait();
       __sync_synchronize();
       CPPUNIT_ASSERT(true==called);
    }
@@ -92,19 +94,17 @@ void WaitingTaskList_test::addThenDone()
    called = false;
    
    {
-      std::shared_ptr<tbb::task> waitTask{new (tbb::task::allocate_root()) tbb::empty_task{},
-                                            [](tbb::task* iTask){tbb::task::destroy(*iTask);} };
-      waitTask->set_ref_count(2);
+      tbb::task_group group;
    
-      auto t = new (waitTask->allocate_child()) TestCalledTask{called};
+      auto t = new TestCalledTask{called,count};
    
-      waitList.add(t);
+      waitList.add(demo::WaitingTaskHolder(group,t));
 
       usleep(10);
       CPPUNIT_ASSERT(false==called);
    
       waitList.doneWaiting(std::exception_ptr{});
-      waitTask->wait_for_all();
+      group.wait();
       CPPUNIT_ASSERT(true==called);
    }
 }
@@ -112,18 +112,16 @@ void WaitingTaskList_test::addThenDone()
 void WaitingTaskList_test::doneThenAdd()
 {
    std::atomic<bool> called{false};
+   std::atomic<int> count{0};
    demo::WaitingTaskList waitList;
    {
-      std::shared_ptr<tbb::task> waitTask{new (tbb::task::allocate_root()) tbb::empty_task{},
-                                            [](tbb::task* iTask){tbb::task::destroy(*iTask);} };
-      waitTask->set_ref_count(2);
-   
-      auto t = new (waitTask->allocate_child()) TestCalledTask{called};
-
+      tbb::task_group group;
+      auto t = new TestCalledTask{called,count};
+      
       waitList.doneWaiting(std::exception_ptr{});
    
-      waitList.add(t);
-      waitTask->wait_for_all();
+      waitList.add(demo::WaitingTaskHolder(group,t));
+      group.wait();
       CPPUNIT_ASSERT(true==called);
    }
 }
@@ -140,36 +138,35 @@ void WaitingTaskList_test::stressTest()
 {
 #if defined(CXX_THREAD_AVAILABLE)
    std::atomic<bool> called{false};
+   std::atomic<int> count{0};
    demo::WaitingTaskList waitList;
    
    unsigned int index = 1000;
    const unsigned int nTasks = 10000;
    while(0 != --index) {
       called = false;
-      std::shared_ptr<tbb::task> waitTask{new (tbb::task::allocate_root()) tbb::empty_task{},
-                                            [](tbb::task* iTask){tbb::task::destroy(*iTask);} };
-      waitTask->set_ref_count(3);
-      tbb::task* pWaitTask=waitTask.get();
-      
+      count = 2;
+      tbb::task_group group;
       {
-         std::thread makeTasksThread([&waitList,pWaitTask,&called]{
+	 std::thread makeTasksThread([&waitList,&count,&called,&group]{
             for(unsigned int i = 0; i<nTasks;++i) {
-               auto t = new (tbb::task::allocate_additional_child_of(*pWaitTask)) TestCalledTask{called};
-               waitList.add(t);
+  	       auto t = new TestCalledTask{called,count};
+               waitList.add(demo::WaitingTaskHolder(group,t));
             }
-         
-            pWaitTask->decrement_ref_count();
+	    --count;
             });
          std::shared_ptr<std::thread> guard(&makeTasksThread,join_thread);
          
-         std::thread doneWaitThread([&waitList,&called,pWaitTask]{
+         std::thread doneWaitThread([&waitList,&called,&count]{
             called=true;
             waitList.doneWaiting(std::exception_ptr{});
-            pWaitTask->decrement_ref_count();
+	    --count;
             });
          std::shared_ptr<std::thread> guard2(&doneWaitThread,join_thread);
       }
-      waitTask->wait_for_all();
+      do {
+	group.wait();
+      }while(0 != count.load());
    }
 #endif
 }
