@@ -95,8 +95,8 @@ SerialTaskQueue::finishedTask() {
 SerialTaskQueue::TaskBase*
 SerialTaskQueue::pickNextTask() {
   bool expected = false;
-  if likely(0 == m_pauseCount and not m_taskChosen.compare_exchange_strong(expected,true)) {
-    TaskBase* t=0;
+  if likely(0 == m_pauseCount and m_taskChosen.compare_exchange_strong(expected,true)) {
+    TaskBase* t=nullptr;
     if likely(m_tasks.try_pop(t)) {
       return t;
     }
@@ -105,8 +105,8 @@ SerialTaskQueue::pickNextTask() {
     
     //was a new entry added after we called 'try_pop' but before we did the clear?
     expected = false;
-    if(not m_tasks.empty() and not m_taskChosen.compare_exchange_strong(expected,true)) {
-      TaskBase* t=0;
+    if(not m_tasks.empty() and m_taskChosen.compare_exchange_strong(expected,true)) {
+      t=nullptr;
       if(m_tasks.try_pop(t)) {
         return t;
       }
@@ -115,7 +115,7 @@ SerialTaskQueue::pickNextTask() {
       
     }
   }
-  return 0;
+  return nullptr;
 }
 
 
