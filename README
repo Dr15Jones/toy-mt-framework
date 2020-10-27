@@ -33,6 +33,7 @@ which need libkqueue
 
 --------------------------------------
 TESTING
+
 To see that the program works at all, you can run DispatchDemo using the simple test configuration
 
 TBBProcessingDemo/TBBDemo ../TBBProcessingDemo/test_config.json
@@ -47,6 +48,14 @@ demo::BusyWaitProducer alpha 0x5c6470
 demo::BusyWaitProducer beta 0x5c66e0
 # threads:24 # simultaneous events:4 total # events:3000 cpu time:182.333 real time:26.2779 events/sec:114.164
 
+--------------------------------------
+UNIT TESTING
+To build the unit tests, you need to tell cmake how to find the cppunit framework. The options to pass to cmake are
+   -DCPPUNIT_INCLUDE_DIR=<include directory> -DCPPUNIT_LIBRARY=<path to library>/libcppunit.so
+
+with the last one requiring the full name of the library to be used. Then to run the tests
+
+TBBProcessinDemo/TBBRunUnitTests
 --------------------------------------
 CALIBRATING
 
