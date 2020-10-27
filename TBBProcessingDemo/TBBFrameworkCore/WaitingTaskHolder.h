@@ -98,7 +98,7 @@ namespace demo {
       }
       auto t = m_task;
       m_task = nullptr;
-      if(0==m_task->decrement_ref_count()){
+      if(0 == t->decrement_ref_count()){
 	m_group->run([t]() {
 	    std::unique_ptr<TaskBase> holder(t);
 	    t->execute();
