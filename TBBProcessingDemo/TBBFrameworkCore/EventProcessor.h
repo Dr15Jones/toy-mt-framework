@@ -14,7 +14,6 @@
 #include <map>
 #include <memory>
 #include <exception>
-#include <tbb/task.h>
 
 namespace demo {
   class Source;
