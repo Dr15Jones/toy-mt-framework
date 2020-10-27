@@ -22,7 +22,7 @@ namespace demo {
     virtual void execute() = 0;
 
     void increment_ref_count() { ++refCount_;}
-    bool decrement_ref_count() { return 0 == --refCount_;}
+    unsigned int decrement_ref_count() { return --refCount_;}
   private:
     std::atomic<unsigned int> refCount_{0};
   };
