@@ -15,7 +15,6 @@
 #include "Event.h"
 #include "Producer.h"
 #include "SerialTaskQueue.h"
-#include "tbb/task.h"
 #include "tbb/parallel_for.h"
 
 class Event_test : public CppUnit::TestFixture {
@@ -43,6 +42,7 @@ public:
   void simultaneousBetweenModulesTwoEvents();
   void simultaneousBetweenInstancesTwoEvents();
   void simultaneousThreadUnsafeTwoEvents();
+
   void setUp(){}
   void tearDown(){}
 };
@@ -95,6 +95,10 @@ namespace  {
     m_toGet(iToGet)
     {
       registerProduct(demo::DataKey(iProduct));
+      //registering get is required
+      for(const std::pair<std::string,std::string>& x : iToGet) {
+        registerGet(x.first, x.second);
+      }
     }
   private:
     virtual void produce(demo::edm::Event& iEvent) {
@@ -158,6 +162,20 @@ namespace {
     iProd->setID(index++);
     iEvent.addProducer(iProd);
   }
+
+  int get(demo::Event const& iEvent, std::string const& iModule, std::string const& iProduct) {
+    demo::Getter g(iModule, iProduct);
+    tbb::task_group group;
+    std::atomic<bool> isDone{false};
+    auto t = demo::make_waiting_task([&isDone](std::exception_ptr*) {
+	isDone = true;
+      });
+    iEvent.getAsync(&g, demo::WaitingTaskHolder(group,t));
+    do {
+      group.wait();
+    }while(not isDone.load() );
+    return iEvent.get(iModule,iProduct);
+  }
 }
 
 
@@ -175,10 +193,11 @@ void Event_test::getSyncDirect()
   addProducerTo(event,id,one);
   addProducerTo(event,id,two);
   
-  CPPUNIT_ASSERT(event.get("one","one")==1);
-  CPPUNIT_ASSERT(event.get("two","two")==2);
+  CPPUNIT_ASSERT(get(event,"one","one")==1);
+  CPPUNIT_ASSERT(get(event,"two","two")==2);
   
 }
+
 
 void Event_test::getSyncIndirect()
 {
@@ -200,9 +219,10 @@ void Event_test::getSyncIndirect()
   addProducerTo(event,id,two);
   addProducerTo(event,id,sum);
   
-  CPPUNIT_ASSERT(event.get("sum","")==3);
+  CPPUNIT_ASSERT(get(event,"sum","")==3);
   
 }
+
 
 void Event_test::getSyncIndirectWithGetter()
 {
@@ -224,9 +244,10 @@ void Event_test::getSyncIndirectWithGetter()
   addProducerTo(event,id,two);
   addProducerTo(event,id,sum);
   
-  CPPUNIT_ASSERT(event.get("sum","")==3);
+  CPPUNIT_ASSERT(get(event,"sum","")==3);
   
 }
+
 
 void Event_test::callOnce()
 {
@@ -253,7 +274,7 @@ void Event_test::callOnce()
   addProducerTo(event,id,sum2);
   addProducerTo(event,id,sum3);
   
-  CPPUNIT_ASSERT(event.get("sum3","")==2);
+  CPPUNIT_ASSERT(get(event,"sum3","")==2);
   CPPUNIT_ASSERT(count.value()==1);
   CPPUNIT_ASSERT(wasChanged==false);
 }
@@ -278,7 +299,7 @@ void Event_test::simultaneousBetweenInstancesOneEvent()
   addProducerTo(event,id,at2);
   addProducerTo(event,id,sum3);
   
-  CPPUNIT_ASSERT(event.get("sum3","")==2);
+  CPPUNIT_ASSERT(get(event,"sum3","")==2);
   CPPUNIT_ASSERT(count.value()==2);
   CPPUNIT_ASSERT(wasChanged==true);
 }
@@ -303,7 +324,7 @@ void Event_test::simultaneousBetweenModulesOneEvent()
   addProducerTo(event,id,at2);
   addProducerTo(event,id,sum3);
   
-  CPPUNIT_ASSERT(event.get("sum3","")==2);
+  CPPUNIT_ASSERT(get(event,"sum3","")==2);
   CPPUNIT_ASSERT(count.value()==2);
   CPPUNIT_ASSERT(wasChanged==true);
 }
@@ -328,7 +349,7 @@ void Event_test::simultaneousThreadUnsafeOneEvent()
   addProducerTo(event,id,at2);
   addProducerTo(event,id,sum3);
   
-  CPPUNIT_ASSERT(event.get("sum3","")==2);
+  CPPUNIT_ASSERT(get(event,"sum3","")==2);
   CPPUNIT_ASSERT(count.value()==2);
   CPPUNIT_ASSERT(wasChanged==false);
 }
@@ -351,7 +372,7 @@ void Event_test::simultaneousBetweenInstancesTwoEvents()
   const demo::Event* events[2]={&event1,event2.get()};
 
   tbb::parallel_for(0,2,[events](int iIndex) {
-     events[iIndex]->get("access","");
+     get(*events[iIndex], "access","");
   });
   CPPUNIT_ASSERT(count.value()==2);
   CPPUNIT_ASSERT(wasChanged==true);
@@ -374,7 +395,7 @@ void Event_test::simultaneousBetweenModulesTwoEvents()
   const demo::Event* events[2]={&event1,event2.get()};
   
   tbb::parallel_for(0,2,[events](int iIndex) {
-     events[iIndex]->get("access","");
+     get(*events[iIndex],"access","");
   });
   CPPUNIT_ASSERT(count.value()==2);
   CPPUNIT_ASSERT(wasChanged==false);
@@ -397,7 +418,7 @@ void Event_test::simultaneousThreadUnsafeTwoEvents()
   const demo::Event* events[2]={&event1,event2.get()};
   
   tbb::parallel_for(0,2,[events](int iIndex) {
-     events[iIndex]->get("access","");
+     get(*events[iIndex],"access","");
   });
   CPPUNIT_ASSERT(count.value()==2);
   CPPUNIT_ASSERT(wasChanged==false);
