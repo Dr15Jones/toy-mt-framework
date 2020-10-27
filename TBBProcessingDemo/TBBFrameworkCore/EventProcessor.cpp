@@ -209,11 +209,18 @@ void EventProcessor::handleNextEventAsync(WaitingTaskHolder iHolder,
 void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
   m_schedules.reserve(iNumConcurrentEvents);
 
-  auto eventLoopWaitTask = make_empty_waiting_task();
-  eventLoopWaitTask->increment_ref_count();
+  std::atomic<bool> done{false};
+  std::exception_ptr exceptPtr;
+  auto lastTask = make_waiting_task([&done, &exceptPtr](std::exception_ptr *iPtr) {
+      if(iPtr) {
+	exceptPtr = *iPtr;
+      }
+      done.store(true);
+    });
+
   tbb::task_group waitGroup;
   {
-    WaitingTaskHolder h{ waitGroup, eventLoopWaitTask.get() };
+    WaitingTaskHolder h{ waitGroup, lastTask};
     for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
       Schedule* scheduleTemp = m_schedules[0]->clone();
       m_schedules.emplace_back(scheduleTemp);
@@ -222,9 +229,11 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
     handleNextEventAsync(h,0);
   }
 
-  waitGroup.wait();
+  do {
+     waitGroup.wait();
+  }while(not done.load());
 
-  if(eventLoopWaitTask->exceptionPtr()) {
-    std::rethrow_exception(*eventLoopWaitTask->exceptionPtr());
+  if(exceptPtr) {
+    std::rethrow_exception(exceptPtr);
   }
 }
