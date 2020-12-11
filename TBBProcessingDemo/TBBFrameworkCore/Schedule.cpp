@@ -21,18 +21,18 @@ using namespace demo;
 
 Schedule::Schedule()
   : m_event(),
-  m_fatalJobErrorOccuredPtr(0){
+  m_allPathsDoneTask(nullptr){
 }
 
 Schedule::Schedule(Event* iEvent):
 m_event(*iEvent),
-m_fatalJobErrorOccuredPtr(0)
+m_allPathsDoneTask(nullptr)
 {  
 }
 
 Schedule::Schedule(const Schedule& iOther):
 m_event(iOther.m_event),
-m_fatalJobErrorOccuredPtr(iOther.m_fatalJobErrorOccuredPtr)
+m_allPathsDoneTask(iOther.m_allPathsDoneTask.fatalJobErrorOccurredPtr())
 {
   m_filters.reserve(iOther.m_filters.size());
   for(auto fw: iOther.m_filters) {
@@ -45,6 +45,21 @@ m_fatalJobErrorOccuredPtr(iOther.m_fatalJobErrorOccuredPtr)
   }
 }
 
+Schedule::AllPathsDoneTask::AllPathsDoneTask(std::atomic<bool>* iFatalError):
+  m_fatalJobErrorOccuredPtr(iFatalError) {}
+inline void Schedule::AllPathsDoneTask::set(WaitingTaskHolder iTask) {
+  m_task = std::move(iTask);
+}
+void Schedule::AllPathsDoneTask::execute() {
+  if(exceptionPtr()) {
+    *(m_fatalJobErrorOccuredPtr) = true;
+    m_task.doneWaiting(*exceptionPtr());
+  } else {
+    m_task.doneWaiting(std::exception_ptr{});
+  }
+}
+void Schedule::AllPathsDoneTask::recycle() {}
+
 void 
 Schedule::processAsync(WaitingTaskHolder iCallback) {
   //printf("Schedule::process\n");
@@ -52,7 +67,8 @@ Schedule::processAsync(WaitingTaskHolder iCallback) {
 
   if(!m_paths.empty()) {
     auto& group = iCallback.group();
-    auto allPathsDone = make_waiting_task(
+    m_allPathsDoneTask.set(std::move(iCallback));
+/*    auto allPathsDone = make_waiting_task(
                                           [this, h=std::move(iCallback)](std::exception_ptr* const iExcept) mutable
                                           {
                                             if(iExcept) {
@@ -61,8 +77,8 @@ Schedule::processAsync(WaitingTaskHolder iCallback) {
                                             } else {
                                               h.doneWaiting(std::exception_ptr{});
                                             }
-                                          });
-    WaitingTaskHolder tmp(group, allPathsDone);
+					    }); */
+    WaitingTaskHolder tmp(group, &m_allPathsDoneTask);
      
     for(auto& path : m_paths) {
       path->runAsync( tmp );
@@ -75,7 +91,7 @@ Schedule::processAsync(WaitingTaskHolder iCallback) {
 void 
 Schedule::addPath(Path* iPath) {
   m_paths.push_back(std::shared_ptr<Path>(iPath));
-  iPath->setFatalJobErrorOccurredPointer(m_fatalJobErrorOccuredPtr);
+  iPath->setFatalJobErrorOccurredPointer(m_allPathsDoneTask.fatalJobErrorOccurredPtr());
 }
 
 void

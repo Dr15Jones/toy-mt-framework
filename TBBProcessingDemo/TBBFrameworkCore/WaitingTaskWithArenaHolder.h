@@ -108,7 +108,7 @@ namespace demo {
 	// the arena if there is not one already.
 	m_arena->enqueue([task = task, group=m_group]() { 
 	    group->run([task]() {
-		std::unique_ptr<TaskBase> holder(task);
+		TaskSentry s{task};
 		task->execute();
 	      });
 	  });

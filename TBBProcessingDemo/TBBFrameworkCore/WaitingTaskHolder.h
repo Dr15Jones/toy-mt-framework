@@ -100,7 +100,7 @@ namespace demo {
       m_task = nullptr;
       if(0 == t->decrement_ref_count()){
 	m_group->run([t]() {
-	    std::unique_ptr<TaskBase> holder(t);
+	    TaskSentry s{t};
 	    t->execute();
 	  });
       }

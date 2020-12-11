@@ -42,17 +42,25 @@ void Path::filterFinished(std::exception_ptr const* iException, size_t iPrevious
   }  
 }
   
+Path::NextFilterTask::NextFilterTask(Path* iPath):m_path(iPath),m_index{0} {}
+inline void Path::NextFilterTask::setIndex(size_t iIndex) { m_index = iIndex;}
+void Path::NextFilterTask::execute() {
+  m_path->filterFinished(exceptionPtr(), m_index);
+}
+void Path::NextFilterTask::recycle() {}
+
 void Path::runFilterAsync(size_t iIndex) {
   if (*m_fatalJobErrorOccurredPtr) {
     //There must have been a fatal problem on another path
     m_callback.doneWaiting(std::exception_ptr{});
     return;
   }
-  auto nextTask = make_waiting_task([this, iIndex](std::exception_ptr const* iPtr) 
+  m_nextFilterTask.setIndex(iIndex);
+  /*auto nextTask = make_waiting_task([this, iIndex](std::exception_ptr const* iPtr) 
   {
     this->filterFinished(iPtr, iIndex);
-  });
-  m_filters[iIndex].filterAsync(WaitingTaskHolder(*m_group,nextTask));
+    }); */
+  m_filters[iIndex].filterAsync(WaitingTaskHolder(*m_group,&m_nextFilterTask));
 }
   
 void Path::reset() {

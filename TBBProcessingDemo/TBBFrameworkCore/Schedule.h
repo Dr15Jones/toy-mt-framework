@@ -38,13 +38,27 @@ namespace demo {
     FilterWrapper* findFilter(const std::string&);
     
     void setFatalJobErrorOccurredPointer(std::atomic<bool>* iPtr) {
-      m_fatalJobErrorOccuredPtr = iPtr;
+      m_allPathsDoneTask.setFatalJobErrorOccurredPointer(iPtr);
     }
     
     Event* event();
     Schedule* clone();
     
   private:
+    class AllPathsDoneTask : public WaitingTask {
+    public:
+      AllPathsDoneTask(std::atomic<bool>* iFatalError);
+      void set(WaitingTaskHolder);
+      void execute() final;
+      void recycle() final;
+      void setFatalJobErrorOccurredPointer(std::atomic<bool>* iPtr) {
+	m_fatalJobErrorOccuredPtr = iPtr;
+      }
+      std::atomic<bool>* fatalJobErrorOccurredPtr() const { return m_fatalJobErrorOccuredPtr;}
+    private:
+      std::atomic<bool>* m_fatalJobErrorOccuredPtr;
+      WaitingTaskHolder m_task;
+    };
 
     //used for cloning
     Schedule(Event*);
@@ -52,7 +66,7 @@ namespace demo {
     Event m_event;
     std::vector<std::shared_ptr<Path>> m_paths;
     std::vector<std::shared_ptr<FilterWrapper> > m_filters;
-    std::atomic<bool>* m_fatalJobErrorOccuredPtr;
+    AllPathsDoneTask m_allPathsDoneTask;
   };
 }
 

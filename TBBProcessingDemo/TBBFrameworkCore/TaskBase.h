@@ -14,6 +14,8 @@
 namespace demo {
   class TaskBase {
   public:
+    friend class TaskSentry;
+
     TaskBase() = default;
     TaskBase(TaskBase const&) = delete;
     TaskBase& operator=(TaskBase const&) = delete;
@@ -24,7 +26,16 @@ namespace demo {
     void increment_ref_count() { ++refCount_;}
     unsigned int decrement_ref_count() { return --refCount_;}
   private:
+    virtual void recycle() { delete this;}
     std::atomic<unsigned int> refCount_{0};
+  };
+
+  class TaskSentry {
+  public:
+    TaskSentry(TaskBase* iTask): task_{iTask} {}
+    ~TaskSentry() { task_->recycle();}
+  private:
+    TaskBase* task_;
   };
 }  
 

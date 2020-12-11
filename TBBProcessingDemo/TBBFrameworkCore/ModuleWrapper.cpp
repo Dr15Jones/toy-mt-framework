@@ -34,6 +34,7 @@ ModuleWrapper::ModuleWrapper(Module* iModule, Event* iEvent):
 m_module(iModule),
 m_event(iEvent),
 m_runQueue( choseQueue(m_module->threadType()) ),
+m_runTask(this),
 m_workStarted{false}
 {
 }
@@ -42,6 +43,7 @@ ModuleWrapper::ModuleWrapper(const ModuleWrapper& iOther,
                              Event* iEvent):
 m_module(iOther.m_module),
 m_event(iEvent),
+m_runTask(this),
 m_workStarted{false}
 {
   if(m_module->threadType() != kThreadSafeBetweenInstances) {
@@ -55,6 +57,7 @@ ModuleWrapper::ModuleWrapper(const ModuleWrapper& iOther):
 m_module(iOther.m_module),
 m_event(iOther.m_event),
 m_runQueue(iOther.m_runQueue),
+m_runTask(this),
 m_workStarted{false}
 {
 }
@@ -76,6 +79,39 @@ ModuleWrapper::~ModuleWrapper()
 {
 }
 
+ModuleWrapper::RunModuleTask::RunModuleTask(ModuleWrapper* iWrapper):
+  m_wrapper{iWrapper}, m_group{nullptr} {}
+
+inline void ModuleWrapper::RunModuleTask::setGroup(tbb::task_group* iGroup) {
+  m_group = iGroup;
+}
+
+void ModuleWrapper::RunModuleTask::execute() {
+  std::exception_ptr ptr;
+  if(exceptionPtr()) {
+    ptr = *exceptionPtr();
+  }
+  if(m_wrapper->module()->hasAcquire()) {
+    if(m_wrapper->runQueue()) {
+      m_wrapper->runQueue()->push(*m_group, [this,ptr]() {
+	  m_wrapper->runModuleAcquireAfterAsyncPrefetch(m_group,ptr);
+	});
+    } else {
+      m_wrapper->runModuleAcquireAfterAsyncPrefetch(m_group,ptr);
+    }
+  } else {
+    if(m_wrapper->runQueue()) {
+      m_wrapper->runQueue()->push(*m_group, [this,ptr]() {
+	  m_wrapper->runModuleAfterAsyncPrefetch(ptr);
+	});
+    } else {
+      m_wrapper->runModuleAfterAsyncPrefetch(ptr);
+    }
+  }
+}
+
+void ModuleWrapper::RunModuleTask::recycle() {}
+
 void
 ModuleWrapper::doWorkAsync(WaitingTaskHolder iTask) {
   auto* group = &iTask.group();
@@ -83,35 +119,8 @@ ModuleWrapper::doWorkAsync(WaitingTaskHolder iTask) {
 
   bool expected = false;
   if(m_workStarted.compare_exchange_strong(expected,true) ) {
-    module()->prefetchAsync(*m_event, 
-			    WaitingTaskHolder(*group,
-			     make_waiting_task(
-                                              [this,group](std::exception_ptr const* iPtr)
-      {
-        std::exception_ptr ptr;
-        if(iPtr) {
-          ptr = *iPtr;
-        }
-	if(module()->hasAcquire()) {
-	  if(runQueue()) {
-	    runQueue()->push(*group, [this,ptr,group]() {
-		runModuleAcquireAfterAsyncPrefetch(group,ptr);
-	      });
-	  } else {
-	    runModuleAcquireAfterAsyncPrefetch(group,ptr);
-	  }
-	} else {
-	  if(runQueue()) {
-	    runQueue()->push(*group, [this,ptr]() {
-		runModuleAfterAsyncPrefetch(ptr);
-	      });
-	  } else {
-	    runModuleAfterAsyncPrefetch(ptr);
-	  }
-	}
-      })
-					      ) 
-    );
+    m_runTask.setGroup(group);
+    module()->prefetchAsync(*m_event, WaitingTaskHolder(*group,&m_runTask));
   }
 }
 

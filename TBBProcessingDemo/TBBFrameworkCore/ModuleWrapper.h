@@ -59,6 +59,18 @@ namespace demo {
     Event* m_event;
     WaitingTaskList m_waitingTasks;
     std::shared_ptr<SerialTaskQueue> m_runQueue;
+
+    class RunModuleTask : public WaitingTask {
+    public:
+      RunModuleTask(ModuleWrapper* iWrapper);
+      void execute() final;
+      void setGroup(tbb::task_group* iGroup);
+      void recycle() final;
+    private:
+      ModuleWrapper* m_wrapper;
+      tbb::task_group* m_group;
+    };
+    RunModuleTask m_runTask;
     std::atomic<bool> m_workStarted;
 
   };
