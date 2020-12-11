@@ -218,19 +218,22 @@ void EventProcessor::processAll(unsigned int iNumConcurrentEvents) {
       done.store(true);
     });
 
-  tbb::task_group waitGroup;
+  std::vector<tbb::task_group> waitGroups{iNumConcurrentEvents};
   {
-    WaitingTaskHolder h{ waitGroup, lastTask};
     for(unsigned int nEvents = 1; nEvents<iNumConcurrentEvents; ++ nEvents) {
+      WaitingTaskHolder h{ waitGroups[nEvents], lastTask};
       Schedule* scheduleTemp = m_schedules[0]->clone();
       m_schedules.emplace_back(scheduleTemp);
       handleNextEventAsync(h, nEvents);
     }
+    WaitingTaskHolder h{ waitGroups[0], lastTask};
     handleNextEventAsync(h,0);
   }
 
   do {
-     waitGroup.wait();
+    for(auto& waitGroup: waitGroups) {
+      waitGroup.wait();
+    }
   }while(not done.load());
 
   if(exceptPtr) {
